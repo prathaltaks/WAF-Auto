@@ -658,45 +658,62 @@ class WAFEngine:
             p1, info, all_data = phase1_preflight(api)
             p1.phase = 1
             phase_results.append(p1)
-            emit_event("phase_done", phase=1, name=p1.name, status=p1.status, passed=p1.passed, failed=p1.failed, skipped=p1.skipped, findings=p1.findings)
+            emit_event("phase_done", phase=1, name=p1.name, status=p1.status, passed=p1.passed, failed=p1.failed, skipped=p1.skipped, findings=p1.findings, checks=getattr(p1,'checks',[]))
             if info is None:
                 emit_event("error", message="Phase 1 critical failure — cannot continue without listener info")
                 return None
             raw_listener = api.find_listener(all_data, CONFIG["target_listener"])
+            # Emit listener_info to frontend for live config display
+            try:
+                emit_event("listener_info",
+                           mode=info.mode,
+                           paranoia=info.paranoia,
+                           sig_on=info.sig_on,
+                           ssl_enabled=info.ssl_enabled,
+                           cipher_suite=info.cipher_suite,
+                           backend=info.backend,
+                           hsts=info.hsts,
+                           av_mode=info.av_mode,
+                           bot_bad_rep=info.bot_bad_rep,
+                           has_geo=info.has_geo,
+                           geo_countries=info.geo_countries)
+            except Exception:
+                pass
         if RUN_PHASES["phase2_config"] and info and raw_listener:
             emit_event("phase_start", phase=2, name="Phase 2 — Config Validation")
             p2 = phase2_config(info, raw_listener)
             p2.phase = 2
             phase_results.append(p2)
-            emit_event("phase_done", phase=2, name=p2.name, status=p2.status, passed=p2.passed, failed=p2.failed, skipped=p2.skipped, findings=p2.findings)
+            emit_event("phase_done", phase=2, name=p2.name, status=p2.status, passed=p2.passed, failed=p2.failed, skipped=p2.skipped, findings=p2.findings, checks=getattr(p2,'checks',[]))
         if RUN_PHASES["phase3_rules"] and info and raw_listener:
             emit_event("phase_start", phase=3, name="Phase 3 — Rules Validation")
             p3 = phase3_rules(info, raw_listener)
             p3.phase = 3
             phase_results.append(p3)
-            emit_event("phase_done", phase=3, name=p3.name, status=p3.status, passed=p3.passed, failed=p3.failed, skipped=p3.skipped, findings=p3.findings)
+            emit_event("phase_done", phase=3, name=p3.name, status=p3.status, passed=p3.passed, failed=p3.failed, skipped=p3.skipped, findings=p3.findings, checks=getattr(p3,'checks',[]))
         if RUN_PHASES["phase4_attacks"]:
             emit_event("phase_start", phase=4, name="Phase 4 — Attack Suite")
             p4, attack_results = phase4_attacks(info)
             p4.phase = 4
             phase_results.append(p4)
-            emit_event("phase_done", phase=4, name=p4.name, status=p4.status, passed=p4.passed, failed=p4.failed, skipped=p4.skipped, findings=p4.findings)
+            emit_event("phase_done", phase=4, name=p4.name, status=p4.status, passed=p4.passed, failed=p4.failed, skipped=p4.skipped, findings=p4.findings, checks=getattr(p4,'checks',[]))
         if RUN_PHASES["phase5_features"]:
             emit_event("phase_start", phase=5, name="Phase 5 — Feature Tests")
             p5 = phase5_features(info)
             p5.phase = 5
             phase_results.append(p5)
-            emit_event("phase_done", phase=5, name=p5.name, status=p5.status, passed=p5.passed, failed=p5.failed, skipped=p5.skipped, findings=p5.findings)
+            emit_event("phase_done", phase=5, name=p5.name, status=p5.status, passed=p5.passed, failed=p5.failed, skipped=p5.skipped, findings=p5.findings, checks=getattr(p5,'checks',[]))
         if RUN_PHASES["phase6_incidents"] and info:
             emit_event("phase_start", phase=6, name="Phase 6 — Incident Verify")
             p6 = phase6_incidents(api, info, attack_results)
             p6.phase = 6
             phase_results.append(p6)
-            emit_event("phase_done", phase=6, name=p6.name, status=p6.status, passed=p6.passed, failed=p6.failed, skipped=p6.skipped, findings=p6.findings)
+            emit_event("phase_done", phase=6, name=p6.name, status=p6.status, passed=p6.passed, failed=p6.failed, skipped=p6.skipped, findings=p6.findings, checks=getattr(p6,'checks',[]))
         if RUN_PHASES["phase7_report"]:
             emit_event("phase_start", phase=7, name="Phase 7 — Report")
             report = phase7_report(phase_results, attack_results, info, report_name=self.config.get("report_name"))
-            emit_event("phase_done", phase=7, name="Phase 7 — Report", status="PASSED", passed=1, failed=0, skipped=0, findings=[])
+            # include any checks aggregated in earlier phases
+            emit_event("phase_done", phase=7, name="Phase 7 — Report", status="PASSED", passed=1, failed=0, skipped=0, findings=[], checks=[c for p in phase_results for c in getattr(p,'checks',[])])
         emit_event("test_complete", report=report if 'report' in locals() else None)
         return report if 'report' in locals() else None
 
