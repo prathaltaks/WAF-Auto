@@ -1,0 +1,14 @@
+{
+  "version": "4.0",
+  "generated_at": "2026-07-06T00:01:28.379061",
+  "setup_type": "standalone",
+  "stack_id": "PZF87FTTHC",
+  "mgmt_ip": "172.105.59.224",
+  "miti_ip": "172.105.59.224",
+  "target_listener": "roti.com",
+  "health_score": 0,
+  "verdict": "\u274c NOT PRODUCTION READY",
+  "phases": [],
+  "attack_results": [],
+  "all_findings": []
+}

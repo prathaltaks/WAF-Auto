@@ -1,0 +1,22 @@
+{
+  "version": "4.0",
+  "generated_at": "2026-07-05T23:49:42.543998",
+  "setup_type": "standalone",
+  "stack_id": "PZF87FTTHC",
+  "mgmt_ip": "172.105.59.224",
+  "miti_ip": "172.105.59.224",
+  "target_listener": "roti.com",
+  "health_score": 0,
+  "verdict": "\u274c NOT PRODUCTION READY",
+  "phases": [],
+  "attack_results": [],
+  "all_findings": [],
+  "profile": {
+    "id": 1,
+    "name": "Pratyush"
+  },
+  "completed_at": "2026-07-05T23:49:42.558363",
+  "profile_id": 1,
+  "filename": "profile_1_20260705_234942.json",
+  "det_rate": 0
+}

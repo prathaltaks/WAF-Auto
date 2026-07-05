@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "name": "Pratyush",
+    "setup_type": "standalone",
+    "mgmt_ip": "172.105.59.224",
+    "mgmt_port": 9000,
+    "miti_ip": "172.105.59.224",
+    "api_token": "eyJhbGciOiJIUzI1NiJ9.eyJhdXRob3JpdHkiOiJUT0tFTl9VU0VSIiwic3ViIjoicXRnc2J5bnBpZmY5a202cyIsImlhdCI6MTc4MzE4NTgzMX0.pbg0nC0Dziu8zyFJyrtmgjV6SAU-EU6TLaghAQ7ocCE",
+    "stack_id": "PZF87FTTHC",
+    "target_listener": "roti.com",
+    "use_https_traffic": false,
+    "last_run": null,
+    "last_score": null
+  }
+]

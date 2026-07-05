@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haltdos WAF Testing Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e1a;--bg2:#0f1729;--bg3:#141e35;--bg4:#1a2540;
+  --border:#1e2d4a;--border2:#253355;
+  --teal:#00d4aa;--teal2:#00b894;--teal3:#00897b;
+  --blue:#3b82f6;--blue2:#1d4ed8;
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--orange:#f97316;
+  --purple:#8b5cf6;--pink:#ec4899;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --font:'Inter',system-ui,sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* Layout */
+.app{display:flex;min-height:100vh}
+.sidebar{width:240px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
+.main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:64px;background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  position:sticky;top:0;z-index:50}
+.content{padding:24px;flex:1}
+
+/* Sidebar */
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.logo-mark{display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--teal),var(--blue));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:900;color:#fff}
+.logo-text{font-size:15px;font-weight:700;color:var(--text)}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-section{padding:8px 16px 4px;font-size:10px;font-weight:600;
+  color:var(--text3);letter-spacing:1.5px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;
+  cursor:pointer;border-radius:0;transition:all 0.15s;
+  color:var(--text2);font-size:13px;font-weight:500;position:relative}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:linear-gradient(90deg,rgba(0,212,170,.15),transparent);
+  color:var(--teal);border-left:3px solid var(--teal)}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--teal);color:#000;
+  font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.version-tag{font-size:11px;color:var(--text3);text-align:center}
+
+/* Top bar */
+.page-title{font-size:18px;font-weight:700;color:var(--text)}
+.page-subtitle{font-size:12px;color:var(--text3);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 8px var(--green)}
+.status-label{font-size:12px;color:var(--text2)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;
+  border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
+  border:1px solid transparent;transition:all 0.15s;white-space:nowrap}
+.btn-primary{background:var(--teal);color:#000;border-color:var(--teal)}
+.btn-primary:hover{background:var(--teal2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,212,170,.3)}
+.btn-secondary{background:var(--bg4);color:var(--text);border-color:var(--border2)}
+.btn-secondary:hover{background:var(--bg3);border-color:var(--teal)}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border-color:rgba(239,68,68,.3)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-icon{padding:7px;border-radius:7px}
+.btn:disabled{opacity:0.5;cursor:not-allowed;transform:none!important}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:20px;transition:border-color 0.2s}
+.card:hover{border-color:var(--border2)}
+.card-header{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px}
+.card-title{font-size:14px;font-weight:700;color:var(--text);
+  display:flex;align-items:center;gap:8px}
+.card-subtitle{font-size:12px;color:var(--text3);margin-top:2px}
+
+/* Stat cards */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.green::before{background:linear-gradient(90deg,var(--green),var(--teal))}
+.stat-card.red::before{background:linear-gradient(90deg,var(--red),var(--orange))}
+.stat-card.yellow::before{background:linear-gradient(90deg,var(--yellow),var(--orange))}
+.stat-card.blue::before{background:linear-gradient(90deg,var(--blue),var(--purple))}
+.stat-card.purple::before{background:linear-gradient(90deg,var(--purple),var(--pink))}
+.stat-label{font-size:11px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.stat-value{font-size:32px;font-weight:800;line-height:1}
+.stat-sub{font-size:12px;color:var(--text3);margin-top:6px}
+.stat-value.green{color:var(--green)}
+.stat-value.red{color:var(--red)}
+.stat-value.yellow{color:var(--yellow)}
+.stat-value.blue{color:var(--blue)}
+.stat-value.purple{color:var(--purple)}
+
+/* Gauge */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;padding:8px 0}
+.gauge-svg{overflow:visible}
+.gauge-value{font-size:28px;font-weight:800}
+.gauge-label{font-size:12px;color:var(--text3);margin-top:4px}
+.verdict-badge{display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;
+  margin-top:12px;letter-spacing:.5px}
+.verdict-badge.good{background:rgba(16,185,129,.15);color:var(--green);
+  border:1px solid rgba(16,185,129,.3)}
+.verdict-badge.warn{background:rgba(245,158,11,.15);color:var(--yellow);
+  border:1px solid rgba(245,158,11,.3)}
+.verdict-badge.bad{background:rgba(239,68,68,.15);color:var(--red);
+  border:1px solid rgba(239,68,68,.3)}
+
+/* Forms */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);
+  margin-bottom:6px;letter-spacing:.3px}
+.form-input,.form-select{width:100%;padding:9px 12px;background:var(--bg3);
+  border:1px solid var(--border2);border-radius:8px;color:var(--text);
+  font-size:13px;transition:border-color 0.15s;outline:none}
+.form-input:focus,.form-select:focus{border-color:var(--teal);
+  box-shadow:0 0 0 3px rgba(0,212,170,.1)}
+.form-input::placeholder{color:var(--text3)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-hint{font-size:11px;color:var(--text3);margin-top:4px}
+.toggle-wrap{display:flex;align-items:center;gap:10px}
+.toggle{width:40px;height:22px;background:var(--bg4);border-radius:11px;
+  cursor:pointer;transition:all 0.2s;position:relative;border:1px solid var(--border2)}
+.toggle.on{background:var(--teal);border-color:var(--teal)}
+.toggle-knob{width:16px;height:16px;background:#fff;border-radius:50%;
+  position:absolute;top:2px;left:2px;transition:transform 0.2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle.on .toggle-knob{transform:translateX(18px)}
+.setup-toggle{display:flex;gap:0;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
+.setup-opt{flex:1;padding:9px 16px;cursor:pointer;font-size:13px;font-weight:600;
+  text-align:center;background:var(--bg3);color:var(--text3);transition:all 0.15s}
+.setup-opt.active{background:var(--teal);color:#000}
+
+/* Profiles grid */
+.profiles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.profile-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:20px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden}
+.profile-card:hover{border-color:var(--teal);transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,212,170,.1)}
+.profile-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--teal),var(--blue));opacity:0;transition:opacity .2s}
+.profile-card:hover::after{opacity:1}
+.profile-type-badge{display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.profile-type-badge.cluster{background:rgba(59,130,246,.15);color:var(--blue);
+  border:1px solid rgba(59,130,246,.2)}
+.profile-type-badge.standalone{background:rgba(139,92,246,.15);color:var(--purple);
+  border:1px solid rgba(139,92,246,.2)}
+.profile-name{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
+.profile-meta{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.profile-meta-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)}
+.profile-meta-row .meta-key{color:var(--text2);font-weight:600;min-width:80px}
+.profile-actions{display:flex;gap:8px}
+.score-chip{position:absolute;top:16px;right:16px;width:48px;height:48px;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;border:3px solid}
+.score-chip.good{border-color:var(--green);color:var(--green);
+  background:rgba(16,185,129,.1)}
+.score-chip.warn{border-color:var(--yellow);color:var(--yellow);
+  background:rgba(245,158,11,.1)}
+.score-chip.bad{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.1)}
+.score-chip.none{border-color:var(--border2);color:var(--text3);background:var(--bg3)}
+
+/* Phase indicators */
+.phases-selector{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.phase-opt{padding:10px;border-radius:8px;border:1px solid var(--border2);
+  cursor:pointer;text-align:center;transition:all .15s;background:var(--bg3)}
+.phase-opt.selected{border-color:var(--teal);background:rgba(0,212,170,.1);color:var(--teal)}
+.phase-opt:hover{border-color:var(--border)}
+.phase-opt .ph-num{font-size:18px;font-weight:800;line-height:1}
+.phase-opt .ph-name{font-size:10px;color:var(--text3);margin-top:3px}
+.phase-opt.selected .ph-name{color:var(--teal)}
+
+/* Terminal / live output */
+.terminal{background:#0a0a0f;border:1px solid var(--border);border-radius:10px;
+  padding:16px;font-family:'Fira Code','Courier New',monospace;font-size:12px;
+  height:400px;overflow-y:auto;line-height:1.7}
+.terminal-line{display:flex;gap:8px;align-items:flex-start}
+.t-ts{color:#4a5568;min-width:60px}
+.t-lvl{min-width:52px;font-weight:700;padding:0 4px;border-radius:3px;font-size:11px}
+.t-lvl.PASS{color:#10b981;background:rgba(16,185,129,.1)}
+.t-lvl.FAIL{color:#ef4444;background:rgba(239,68,68,.1)}
+.t-lvl.WARN{color:#f59e0b;background:rgba(245,158,11,.1)}
+.t-lvl.INFO{color:#3b82f6;background:rgba(59,130,246,.1)}
+.t-lvl.DROP{color:#10b981;background:rgba(16,185,129,.1)}
+.t-lvl.REDIR{color:#10b981;background:rgba(16,185,129,.1)}
+.t-msg{color:#e2e8f0;flex:1;word-break:break-all}
+.t-ph{color:#8b5cf6;font-size:10px;padding:1px 5px;border-radius:3px;
+  background:rgba(139,92,246,.1);margin-left:auto}
+
+/* Phase progress during run */
+.phase-progress{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.phase-row{display:flex;align-items:center;gap:12px;padding:10px 14px;
+  border-radius:8px;background:var(--bg3);border:1px solid var(--border)}
+.phase-row.running{border-color:var(--teal);background:rgba(0,212,170,.05)}
+.phase-row.done-pass{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)}
+.phase-row.done-warn{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.05)}
+.phase-row.done-fail{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.05)}
+.phase-icon{font-size:20px;min-width:24px}
+.phase-info{flex:1}
+.phase-name{font-size:13px;font-weight:600;color:var(--text)}
+.phase-detail{font-size:11px;color:var(--text3);margin-top:2px}
+.phase-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.phase-status.running{color:var(--teal);background:rgba(0,212,170,.15)}
+.phase-status.PASSED{color:var(--green);background:rgba(16,185,129,.15)}
+.phase-status.PARTIAL{color:var(--yellow);background:rgba(245,158,11,.15)}
+.phase-status.FAILED{color:var(--red);background:rgba(239,68,68,.15)}
+.phase-status.waiting{color:var(--text3);background:var(--bg4)}
+.spinner{width:16px;height:16px;border:2px solid var(--bg4);
+  border-top-color:var(--teal);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Attack results table */
+.attack-table{width:100%;border-collapse:collapse}
+.attack-table th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;
+  color:var(--text3);text-transform:uppercase;letter-spacing:.8px;
+  border-bottom:1px solid var(--border);background:var(--bg3)}
+.attack-table td{padding:10px 12px;font-size:12px;border-bottom:1px solid var(--border);
+  font-family:'Fira Code',monospace}
+.attack-table tr:last-child td{border-bottom:none}
+.attack-table tr:hover td{background:var(--bg3)}
+.result-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+  border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap}
+.result-chip.BLOCKED{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.result-chip.DROPPED{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.result-chip.REDIRECTED{background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+.result-chip.NOT_EXPOSED{background:rgba(139,92,246,.15);color:var(--purple);border:1px solid rgba(139,92,246,.2)}
+.result-chip.PASSED_THROUGH{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.result-chip.RECON{background:rgba(245,158,11,.15);color:var(--yellow);border:1px solid rgba(245,158,11,.2)}
+.cat-badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:var(--bg4)}
+
+/* Incidents table */
+.inc-table{width:100%;border-collapse:collapse;font-size:12px}
+.inc-table th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;
+  color:var(--text3);text-transform:uppercase;letter-spacing:.8px;
+  border-bottom:1px solid var(--border);background:var(--bg3)}
+.inc-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+.action-drop{color:var(--red);font-weight:700}
+.action-record{color:var(--yellow);font-weight:700}
+.action-block{color:var(--green);font-weight:700}
+
+/* Progress bar */
+.progress-wrap{background:var(--bg4);border-radius:99px;height:8px;overflow:hidden}
+.progress-bar{height:100%;border-radius:99px;transition:width .3s;
+  background:linear-gradient(90deg,var(--teal),var(--blue))}
+.progress-bar.red{background:linear-gradient(90deg,var(--red),var(--orange))}
+.progress-bar.yellow{background:linear-gradient(90deg,var(--yellow),var(--orange))}
+
+/* Findings */
+.finding{display:flex;gap:10px;padding:12px;border-radius:8px;margin-bottom:8px;
+  border:1px solid}
+.finding.critical{background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.2)}
+.finding.warn{background:rgba(245,158,11,.07);border-color:rgba(245,158,11,.2)}
+.finding-icon{font-size:16px}
+.finding-msg{font-size:13px;color:var(--text);flex:1}
+.finding-type{font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;
+  margin-left:auto;white-space:nowrap;align-self:flex-start}
+.finding.critical .finding-type{color:var(--red);background:rgba(239,68,68,.15)}
+.finding.warn .finding-type{color:var(--yellow);background:rgba(245,158,11,.15)}
+
+/* Listeners table */
+.listener-row{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border-radius:8px;background:var(--bg3);border:1px solid var(--border);
+  margin-bottom:8px}
+.listener-row.target{border-color:var(--teal);background:rgba(0,212,170,.05)}
+.mode-badge{padding:2px 10px;border-radius:10px;font-size:11px;font-weight:700}
+.mode-badge.MITIGATION{background:rgba(16,185,129,.15);color:var(--green)}
+.mode-badge.RECORD{background:rgba(245,158,11,.15);color:var(--yellow)}
+.mode-badge.BYPASSED{background:rgba(239,68,68,.15);color:var(--red)}
+.mode-badge.unknown{background:var(--bg4);color:var(--text3)}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 18px;cursor:pointer;font-size:13px;font-weight:600;
+  color:var(--text3);border-bottom:2px solid transparent;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+
+/* Charts */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px}
+.chart-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);
+  backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;
+  justify-content:center;padding:20px}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;
+  width:100%;max-width:560px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 24px 48px rgba(0,0,0,.5)}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:16px;font-weight:700;color:var(--text)}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);
+  display:flex;justify-content:flex-end;gap:10px}
+.close-btn{background:none;border:none;color:var(--text3);cursor:pointer;
+  font-size:20px;line-height:1;padding:4px;border-radius:4px}
+.close-btn:hover{color:var(--text);background:var(--bg3)}
+
+/* Empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:60px 20px;text-align:center}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:.5}
+.empty-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-sub{font-size:14px;color:var(--text3);max-width:320px;line-height:1.6}
+
+/* Toast */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:2000;
+  display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 16px;border-radius:10px;font-size:13px;font-weight:500;
+  display:flex;align-items:center;gap:10px;min-width:280px;
+  box-shadow:0 8px 24px rgba(0,0,0,.3);animation:slideIn .2s ease}
+.toast.success{background:#064e3b;color:#6ee7b7;border:1px solid #065f46}
+.toast.error{background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b}
+.toast.info{background:#1e3a5f;color:#93c5fd;border:1px solid #1d4ed8}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* Misc */
+.divider{height:1px;background:var(--border);margin:16px 0}
+.section-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;
+  display:flex;align-items:center;gap:8px}
+.chip{display:inline-flex;align-items:center;padding:2px 8px;
+  border-radius:8px;font-size:11px;font-weight:600;
+  background:var(--bg4);color:var(--text2)}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.config-row{display:flex;align-items:center;padding:10px 0;
+  border-bottom:1px solid var(--border)}
+.config-row:last-child{border-bottom:none}
+.config-key{font-size:12px;color:var(--text3);flex:1}
+.config-val{font-size:13px;font-weight:600;color:var(--text)}
+.ok-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.ok-dot.green{background:var(--green)}
+.ok-dot.red{background:var(--red)}
+.ok-dot.yellow{background:var(--yellow)}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">H</div>
+      <div>
+        <div class="logo-text">Haltdos WAF</div>
+        <div class="logo-sub">Testing Platform v5</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="nav('dashboard')" id="nav-dashboard">
+      <span class="icon">🏠</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="nav('profiles')" id="nav-profiles">
+      <span class="icon">⚙️</span> Profiles
+      <span class="nav-badge" id="profile-count">0</span>
+    </div>
+    <div class="nav-section">Testing</div>
+    <div class="nav-item" onclick="nav('run')" id="nav-run">
+      <span class="icon">▶️</span> Run Test
+    </div>
+    <div class="nav-item" onclick="nav('results')" id="nav-results">
+      <span class="icon">📊</span> Results
+    </div>
+    <div class="nav-item" onclick="nav('history')" id="nav-history">
+      <span class="icon">📋</span> History
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="version-tag">v5.0 · Official API Edition</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="page-subtitle" id="page-subtitle">Overview of all test profiles</div>
+    </div>
+    <div class="topbar-right">
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="status-dot" id="socket-dot" style="background:var(--red)"></div>
+        <div class="status-label" id="socket-label">Disconnected</div>
+      </div>
+    </div>
+  </div>
+  <div class="content" id="page-content"></div>
+</div>
+
+</div>
+<!-- Toast container -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+const state = {
+  profiles: [],
+  currentPage: 'dashboard',
+  socket: null,
+  testRunning: false,
+  testResults: null,
+  activeProfileId: null,
+  liveLines: [],
+  phaseStates: {},
+  attackResults: [],
+  incidents: [],
+  listenerInfo: null,
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SOCKET.IO
+// ═══════════════════════════════════════════════════════════════
+function initSocket() {
+  const s = io();
+  state.socket = s;
+
+  s.on('connect', () => {
+    document.getElementById('socket-dot').style.background = 'var(--green)';
+    document.getElementById('socket-label').textContent = 'Connected';
+  });
+  s.on('disconnect', () => {
+    document.getElementById('socket-dot').style.background = 'var(--red)';
+    document.getElementById('socket-label').textContent = 'Disconnected';
+  });
+
+  s.on('log_line', d => {
+    state.liveLines.push(d);
+    appendTerminalLine(d);
+  });
+
+  s.on('phase_start', d => {
+    state.phaseStates[d.phase] = {name: d.name, status: 'running'};
+    updatePhaseProgress();
+  });
+
+  s.on('phase_done', d => {
+    state.phaseStates[d.phase] = {...(state.phaseStates[d.phase]||{}), ...d, status: d.status};
+    updatePhaseProgress();
+  });
+
+  s.on('attack_result', d => {
+    state.attackResults.push(d);
+    const progress = d.progress || 0;
+    const index = d.index || state.attackResults.length;
+    const total = d.total || state.attackResults.length;
+    document.getElementById('attack-progress-card').style.display = '';
+    updateAttackProgress(progress, index, total);
+    appendAttackRow(d);
+  });
+
+  s.on('listener_info', d => {
+    state.listenerInfo = d;
+    renderListenerInfo(d);
+  });
+
+  s.on('listeners_discovered', d => {
+    renderListenersList(d.listeners);
+  });
+
+  s.on('incidents_data', d => {
+    state.incidents = d.incidents;
+    renderIncidentsPreview(d.incidents, d.ioc_count);
+  });
+
+  s.on('test_complete', d => {
+    state.testRunning = false;
+    state.testResults = d;
+    updateRunButton(false);
+    buildResults(d);
+    showToast('Test complete! ' + d.verdict, 'success');
+    loadProfiles();
+  });
+
+  s.on('test_error', d => {
+    state.testRunning = false;
+    updateRunButton(false);
+    showToast('Test error: ' + d.message, 'error');
+  });
+
+  s.on('test_stopped', () => {
+    state.testRunning = false;
+    updateRunButton(false);
+    showToast('Test stopped', 'info');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════════════════════════════════
+async function api(method, url, body) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+async function loadProfiles() {
+  const ps = await api('GET', '/api/profiles');
+  state.profiles = ps;
+  document.getElementById('profile-count').textContent = ps.length;
+  return ps;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+const pageMeta = {
+  dashboard: {title:'Dashboard', sub:'Overview of all test profiles'},
+  profiles:  {title:'Profiles', sub:'Manage WAF setup configurations'},
+  run:       {title:'Run Test', sub:'Execute WAF security tests'},
+  results:   {title:'Results', sub:'Latest test results and analysis'},
+  history:   {title:'History', sub:'Past test runs and reports'},
+};
+
+function nav(page) {
+  state.currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById('nav-'+page);
+  if (navEl) navEl.classList.add('active');
+  const m = pageMeta[page] || {title:page,sub:''};
+  document.getElementById('page-title').textContent = m.title;
+  document.getElementById('page-subtitle').textContent = m.sub;
+  const content = document.getElementById('page-content');
+  if (page==='dashboard') renderDashboard(content);
+  else if (page==='profiles') renderProfiles(content);
+  else if (page==='run') renderRun(content);
+  else if (page==='results') renderResults(content);
+  else if (page==='history') renderHistory(content);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function renderDashboard(el) {
+  const total = state.profiles.length;
+  const scored = state.profiles.filter(p => p.last_run).length;
+  const avgScore = scored > 0 ?
+    Math.round(state.profiles.filter(p=>p.last_score).reduce((a,b)=>a+(b.last_score||0),0)/scored) : 0;
+
+  el.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card blue">
+        <div class="stat-label">Total Profiles</div>
+        <div class="stat-value blue">${total}</div>
+        <div class="stat-sub">Test configurations</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Tests Run</div>
+        <div class="stat-value green">${scored}</div>
+        <div class="stat-sub">Profiles with history</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">Status</div>
+        <div class="stat-value purple" style="font-size:20px">${state.testRunning?'🔄 Running':'✅ Idle'}</div>
+        <div class="stat-sub">Engine status</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⚡ Quick Run</div>
+        </div>
+        ${total === 0 ? `
+          <div style="text-align:center;padding:20px 0">
+            <div style="font-size:32px;margin-bottom:12px">🔧</div>
+            <div style="font-size:14px;color:var(--text2);margin-bottom:16px">No profiles yet</div>
+            <button class="btn btn-primary" onclick="nav('profiles')">Add Profile</button>
+          </div>
+        ` : `
+          <div class="form-group">
+            <label class="form-label">Select Profile</label>
+            <select class="form-select" id="dash-profile-sel">
+              ${state.profiles.map((p,i)=>`<option value="${i+1}">${p.name} (${p.setup_type})</option>`).join('')}
+            </select>
+          </div>
+          <button class="btn btn-primary" style="width:100%" onclick="quickRun()">
+            ▶ Run Full Test
+          </button>
+        `}
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📋 Recent Profiles</div>
+        </div>
+        ${state.profiles.length===0 ? '<div style="color:var(--text3);font-size:13px">No profiles configured</div>' :
+          state.profiles.slice(0,4).map((p,i) => `
+            <div class="listener-row" style="margin-bottom:6px">
+              <span class="profile-type-badge ${p.setup_type}">${p.setup_type}</span>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600">${p.name}</div>
+                <div style="font-size:11px;color:var(--text3)">${p.target_listener} · ${p.stack_id}</div>
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="startTestFromProfile(${i+1})">Run</button>
+            </div>
+          `).join('')
+        }
+      </div>
+    </div>
+
+    ${state.testResults ? `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📊 Latest Test Result</div>
+        <button class="btn btn-sm btn-secondary" onclick="nav('results')">View Full Report</button>
+      </div>
+      ${renderMiniReport(state.testResults)}
+    </div>` : ''}
+  `;
+}
+
+function renderMiniReport(data) {
+  const atk = data.attack_results || [];
+  const blocked = atk.filter(a=>a.blocked).length;
+  const det = atk.length ? Math.round(blocked/atk.length*100) : 0;
+  const score = data.health_score || 0;
+  const vcolor = score>=85?'good':score>=65?'warn':'bad';
+
+  return `
+    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+      <div style="text-align:center">
+        ${gaugeHTML(score, 80)}
+        <div class="verdict-badge ${vcolor}" style="margin-top:8px">${data.verdict||''}</div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div class="config-row">
+          <div class="config-key">Profile</div>
+          <div class="config-val">${data.profile?.name||'?'}</div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">Detection Rate</div>
+          <div class="config-val" style="color:${det>=80?'var(--green)':det>=60?'var(--yellow)':'var(--red)'}">${det}%</div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">Attacks Blocked</div>
+          <div class="config-val">${blocked}/${atk.length}</div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">Tested At</div>
+          <div class="config-val" style="font-size:12px">${(data.completed_at||'').substring(0,16).replace('T',' ')}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function gaugeHTML(score, size) {
+  const r = 36; const cx = 48; const cy = 48;
+  const circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ * 0.75;
+  const color = score>=85?'#10b981':score>=65?'#f59e0b':'#ef4444';
+  const rot = -225;
+  return `
+    <svg width="${cx*2}" height="${cy*2-10}" class="gauge-svg">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="8"
+        stroke-dasharray="${circ*0.75} ${circ}" stroke-linecap="round"
+        transform="rotate(${rot} ${cx} ${cy})"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="8"
+        stroke-dasharray="${dash} ${circ}" stroke-linecap="round"
+        transform="rotate(${rot} ${cx} ${cy})" style="transition:stroke-dasharray .5s"/>
+      <text x="${cx}" y="${cy+6}" text-anchor="middle" fill="${color}"
+        style="font-size:18px;font-weight:800;font-family:var(--font)">${score}%</text>
+    </svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROFILES PAGE
+// ═══════════════════════════════════════════════════════════════
+function renderProfiles(el) {
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="section-title">🔧 Test Profiles</div>
+      <button class="btn btn-primary" onclick="showAddProfile()">+ Add Profile</button>
+    </div>
+    ${state.profiles.length === 0 ? `
+      <div class="empty-state">
+        <div class="empty-icon">🔧</div>
+        <div class="empty-title">No profiles yet</div>
+        <div class="empty-sub">Add a profile with your Haltdos setup details to start testing</div>
+        <button class="btn btn-primary" style="margin-top:20px" onclick="showAddProfile()">Add Profile</button>
+      </div>
+    ` : `
+      <div class="profiles-grid" id="profiles-grid">
+        ${state.profiles.map((p,i) => profileCardHTML(p, i+1)).join('')}
+      </div>
+    `}
+    <div id="profile-modal"></div>
+  `;
+}
+
+function profileCardHTML(p, id) {
+  const hasScore = p.last_score != null;
+  const scoreClass = !hasScore ? 'none' : p.last_score>=85 ? 'good' : p.last_score>=65 ? 'warn' : 'bad';
+  return `
+    <div class="profile-card" id="pcard-${id}">
+      <div class="score-chip ${scoreClass}">${hasScore ? p.last_score+'%' : '—'}</div>
+      <div class="profile-type-badge ${p.setup_type}">${p.setup_type==='cluster'?'🔗 Cluster':'📦 Standalone'}</div>
+      <div class="profile-name">${p.name}</div>
+      <div class="profile-meta">
+        <div class="profile-meta-row"><span class="meta-key">Stack ID</span>${p.stack_id}</div>
+        <div class="profile-meta-row"><span class="meta-key">Mgmt IP</span>${p.mgmt_ip}:${p.mgmt_port}</div>
+        ${p.setup_type==='cluster'?`<div class="profile-meta-row"><span class="meta-key">Traffic IP</span>${p.miti_ip}</div>`:''}
+        <div class="profile-meta-row"><span class="meta-key">Listener</span>${p.target_listener}</div>
+        <div class="profile-meta-row"><span class="meta-key">Token</span>${p.has_token?'✅ Set':'❌ Not set'}</div>
+        <div class="profile-meta-row"><span class="meta-key">Last Run</span>${p.last_run||'Never'}</div>
+      </div>
+      <div class="profile-actions">
+        <button class="btn btn-primary btn-sm" onclick="startTestFromProfile(${id})">▶ Run</button>
+        <button class="btn btn-secondary btn-sm" onclick="showEditProfile(${id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProfile(${id})">Delete</button>
+      </div>
+    </div>`;
+}
+
+function showAddProfile() {
+  const modal = document.getElementById('profile-modal') || document.body;
+  modal.innerHTML = profileModalHTML(null, null);
+}
+
+function showEditProfile(id) {
+  const p = state.profiles[id-1];
+  const modal = document.getElementById('profile-modal') || document.body;
+  modal.innerHTML = profileModalHTML(id, p);
+}
+
+function profileModalHTML(id, p) {
+  const isEdit = id !== null;
+  return `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">${isEdit?'Edit Profile':'Add New Profile'}</div>
+          <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Profile Name *</label>
+            <input class="form-input" id="f-name" placeholder="e.g. Office Cluster" value="${p?.name||''}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Setup Type *</label>
+            <div class="setup-toggle">
+              <div class="setup-opt ${(!p||p.setup_type==='cluster')?'active':''}"
+                   id="opt-cluster" onclick="selectSetup('cluster')">🔗 Cluster</div>
+              <div class="setup-opt ${(p?.setup_type==='standalone')?'active':''}"
+                   id="opt-standalone" onclick="selectSetup('standalone')">📦 Standalone</div>
+            </div>
+            <input type="hidden" id="f-setup" value="${p?.setup_type||'cluster'}">
+            <div class="form-hint">Cluster = separate mgmt + mitigation IPs | Standalone = single machine</div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Management IP *</label>
+              <input class="form-input" id="f-mgmt-ip" placeholder="172.16.0.72" value="${p?.mgmt_ip||''}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Management Port *</label>
+              <input class="form-input" id="f-mgmt-port" placeholder="443" value="${p?.mgmt_port||443}">
+            </div>
+          </div>
+          <div id="miti-field" style="${(p?.setup_type==='standalone')?'display:none':''}" class="form-group">
+            <label class="form-label">Mitigation / Traffic IP *</label>
+            <input class="form-input" id="f-miti-ip" placeholder="172.16.0.73" value="${p?.miti_ip||''}">
+            <div class="form-hint">The IP where WAF actually processes traffic (not the GUI IP)</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stack ID *</label>
+            <input class="form-input" id="f-stack" placeholder="PAHDIWCFPM" value="${p?.stack_id||''}">
+            <div class="form-hint">From browser URL: /stack/STACKID/...</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">API Token * ${isEdit?'(leave blank to keep existing)':''}</label>
+            <input class="form-input" id="f-token" type="password" placeholder="${isEdit?'••••••••••• (unchanged)':'Paste your API token'}">
+            <div class="form-hint">From Haltdos: Integrations → API Tokens → Generate</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Target Listener *</label>
+            <input class="form-input" id="f-listener" placeholder="roti.com" value="${p?.target_listener||''}">
+            <div class="form-hint">Exact listener name as shown in Haltdos</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">HTTPS Traffic</label>
+            <div class="toggle-wrap">
+              <div class="toggle ${p?.use_https_traffic?'on':''}" id="f-https-toggle"
+                   onclick="toggleHTTPS()"></div>
+              <input type="hidden" id="f-https" value="${p?.use_https_traffic?'true':'false'}">
+              <span style="font-size:13px;color:var(--text2)">Enable if listener uses SSL/HTTPS</span>
+            </div>
+          </div>
+          <div style="margin-top:8px">
+            <button class="btn btn-secondary btn-sm" onclick="testConn()">🔌 Test Connection</button>
+            <span id="conn-result" style="font-size:12px;margin-left:10px;color:var(--text3)"></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="${isEdit?`saveEditProfile(${id})`:'saveNewProfile()'}">${isEdit?'Save Changes':'Add Profile'}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function selectSetup(type) {
+  document.getElementById('f-setup').value = type;
+  document.getElementById('opt-cluster').classList.toggle('active', type==='cluster');
+  document.getElementById('opt-standalone').classList.toggle('active', type==='standalone');
+  document.getElementById('miti-field').style.display = type==='standalone'?'none':'';
+}
+
+function toggleHTTPS() {
+  const t = document.getElementById('f-https-toggle');
+  const v = document.getElementById('f-https');
+  const on = v.value === 'true';
+  t.classList.toggle('on', !on);
+  v.value = (!on).toString();
+}
+
+function closeModal() {
+  const m = document.getElementById('profile-modal');
+  if (m) m.innerHTML = '';
+}
+
+async function testConn() {
+  const res = document.getElementById('conn-result');
+  res.textContent = 'Testing...'; res.style.color='var(--text3)';
+  const data = {
+    mgmt_ip: document.getElementById('f-mgmt-ip').value,
+    mgmt_port: document.getElementById('f-mgmt-port').value,
+    miti_ip: document.getElementById('f-miti-ip')?.value ||
+             document.getElementById('f-mgmt-ip').value,
+  };
+  const r = await api('POST','/api/test-connection', data);
+  const ok = r.management?.ok && r.traffic?.ok;
+  res.textContent = ok ? '✅ All reachable' : `❌ ${r.management?.ok?'':'Mgmt unreachable '} ${r.traffic?.ok?'':'Traffic unreachable'}`;
+  res.style.color = ok ? 'var(--green)' : 'var(--red)';
+}
+
+async function saveNewProfile() {
+  const data = getProfileFormData();
+  if (!data) return;
+  const r = await api('POST','/api/profiles', data);
+  if (r.error) { showToast(r.error,'error'); return; }
+  closeModal();
+  await loadProfiles();
+  renderProfiles(document.getElementById('page-content'));
+  showToast('Profile added!','success');
+}
+
+async function saveEditProfile(id) {
+  const data = getProfileFormData(true);
+  if (!data) return;
+  const r = await api('PUT', `/api/profiles/${id}`, data);
+  if (r.error) { showToast(r.error,'error'); return; }
+  closeModal();
+  await loadProfiles();
+  renderProfiles(document.getElementById('page-content'));
+  showToast('Profile updated!','success');
+}
+
+function getProfileFormData(isEdit=false) {
+  const name     = document.getElementById('f-name')?.value?.trim();
+  const setup    = document.getElementById('f-setup')?.value;
+  const mgmt_ip  = document.getElementById('f-mgmt-ip')?.value?.trim();
+  const mgmt_port= document.getElementById('f-mgmt-port')?.value?.trim();
+  const stack_id = document.getElementById('f-stack')?.value?.trim();
+  const listener = document.getElementById('f-listener')?.value?.trim();
+  const token    = document.getElementById('f-token')?.value?.trim();
+  const miti_ip  = document.getElementById('f-miti-ip')?.value?.trim() || mgmt_ip;
+  const use_https= document.getElementById('f-https')?.value === 'true';
+
+  if (!name||!mgmt_ip||!stack_id||!listener) {
+    showToast('Fill all required fields','error'); return null;
+  }
+  if (!isEdit && !token) { showToast('API token is required','error'); return null; }
+
+  return {name,setup_type:setup,mgmt_ip,mgmt_port:parseInt(mgmt_port)||443,
+          miti_ip,api_token:token,stack_id,target_listener:listener,use_https_traffic:use_https};
+}
+
+async function deleteProfile(id) {
+  if (!confirm('Delete this profile? All reports will be kept.')) return;
+  await api('DELETE', `/api/profiles/${id}`);
+  await loadProfiles();
+  renderProfiles(document.getElementById('page-content'));
+  showToast('Profile deleted','info');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RUN TEST PAGE
+// ═══════════════════════════════════════════════════════════════
+function renderRun(el) {
+  state.liveLines = [];
+  state.phaseStates = {};
+  state.attackResults = [];
+
+  const phases = [
+    {id:1,name:'Pre-flight'},{id:2,name:'Config Check'},
+    {id:3,name:'Rules Check'},{id:4,name:'Attack Suite'},
+    {id:5,name:'Feature Tests'},{id:6,name:'Incidents'},
+    {id:7,name:'Report'},
+  ];
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:380px 1fr;gap:20px">
+      <!-- LEFT: Config panel -->
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">⚙️ Test Configuration</div></div>
+          ${state.profiles.length===0 ? `
+            <div style="text-align:center;padding:20px">
+              <div style="font-size:13px;color:var(--text3);margin-bottom:12px">No profiles yet</div>
+              <button class="btn btn-primary btn-sm" onclick="nav('profiles')">Add Profile</button>
+            </div>
+          ` : `
+            <div class="form-group">
+              <label class="form-label">Select Profile</label>
+              <select class="form-select" id="run-profile" onchange="onProfileChange()">
+                ${state.profiles.map((p,i)=>`<option value="${i+1}">${p.name}</option>`).join('')}
+              </select>
+            </div>
+            <div id="profile-summary" class="card" style="background:var(--bg3);padding:14px;border-radius:8px;margin-bottom:16px"></div>
+            <div class="form-group">
+              <label class="form-label">Select Phases</label>
+              <div class="phases-selector">
+                ${phases.map(ph=>`
+                  <div class="phase-opt selected" id="popt-${ph.id}" onclick="togglePhase(${ph.id})">
+                    <div class="ph-num">${ph.id}</div>
+                    <div class="ph-name">${ph.name}</div>
+                  </div>`).join('')}
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-secondary btn-sm" onclick="selectAllPhases()">All</button>
+                <button class="btn btn-secondary btn-sm" onclick="selectPhases([4,5,6,7])">Attacks Only</button>
+                <button class="btn btn-secondary btn-sm" onclick="selectPhases([1,2,3,7])">Config Only</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Attack Delay (seconds)</label>
+              <input class="form-input" type="number" id="run-delay" value="0.5" min="0" max="5" step="0.1">
+              <div class="form-hint">Lower = faster but more load on WAF</div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;margin-top:4px" id="run-btn" onclick="startTest()">
+              ▶ Start Test
+            </button>
+            <button class="btn btn-danger" style="width:100%;margin-top:8px;display:none" id="stop-btn" onclick="stopTest()">
+              ■ Stop Test
+            </button>
+          `}
+        </div>
+
+        <!-- Phase progress -->
+        <div class="card" id="phase-progress-card" style="display:none">
+          <div class="card-header"><div class="card-title">📋 Phase Progress</div></div>
+          <div id="phase-progress-list"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Live output -->
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <div class="card-title">📡 Live Output</div>
+            <button class="btn btn-sm btn-secondary" onclick="clearTerminal()">Clear</button>
+          </div>
+          <div class="terminal" id="terminal">
+            <div style="color:var(--text3);font-size:13px;text-align:center;padding:40px 0">
+              Waiting to start test...
+            </div>
+          </div>
+        </div>
+
+        <!-- Attack progress during run -->
+        <div class="card" id="attack-progress-card" style="display:none">
+          <div class="card-header">
+            <div class="card-title">🎯 Attack Progress</div>
+            <span id="attack-progress-label" style="font-size:12px;color:var(--text3)">0/43</span>
+          </div>
+          <div class="progress-wrap" style="margin-bottom:12px">
+            <div class="progress-bar" id="attack-progress-bar" style="width:0%"></div>
+          </div>
+          <div id="attack-live-table" style="max-height:300px;overflow-y:auto">
+            <table class="attack-table">
+              <thead><tr>
+                <th>ID</th><th>Category</th><th>Description</th><th>Status</th><th>Result</th>
+              </tr></thead>
+              <tbody id="attack-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Listener info -->
+        <div id="listener-info-card" style="display:none" class="card" style="margin-top:16px">
+          <div class="card-header"><div class="card-title">🔍 Listener Details</div></div>
+          <div id="listener-info-body"></div>
+        </div>
+
+        <!-- Incidents preview -->
+        <div id="incidents-preview-card" style="display:none" class="card" style="margin-top:16px">
+          <div class="card-header"><div class="card-title">🚨 Incidents (last 60 min)</div></div>
+          <div id="incidents-preview-body"></div>
+        </div>
+      </div>
+    </div>`;
+
+  if (state.profiles.length > 0) onProfileChange();
+}
+
+function onProfileChange() {
+  const id = parseInt(document.getElementById('run-profile')?.value);
+  if (!id) return;
+  const p = state.profiles[id-1];
+  state.activeProfileId = id;
+  const div = document.getElementById('profile-summary');
+  if (!div || !p) return;
+  div.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div class="config-row" style="padding:6px 0">
+        <div class="config-key">Type</div>
+        <div class="config-val"><span class="profile-type-badge ${p.setup_type}" style="font-size:11px">${p.setup_type}</span></div>
+      </div>
+      <div class="config-row" style="padding:6px 0">
+        <div class="config-key">Management</div>
+        <div class="config-val">${p.mgmt_ip}:${p.mgmt_port}</div>
+      </div>
+      ${p.setup_type==='cluster'?`<div class="config-row" style="padding:6px 0">
+        <div class="config-key">Traffic IP</div>
+        <div class="config-val">${p.miti_ip}</div>
+      </div>`:''}
+      <div class="config-row" style="padding:6px 0">
+        <div class="config-key">Stack</div>
+        <div class="config-val">${p.stack_id}</div>
+      </div>
+      <div class="config-row" style="padding:6px 0">
+        <div class="config-key">Listener</div>
+        <div class="config-val">${p.target_listener}</div>
+      </div>
+    </div>`;
+}
+
+function togglePhase(id) {
+  const el = document.getElementById(`popt-${id}`);
+  el.classList.toggle('selected');
+}
+
+function selectAllPhases() {
+  [1,2,3,4,5,6,7].forEach(i => document.getElementById(`popt-${i}`)?.classList.add('selected'));
+}
+
+function selectPhases(ids) {
+  [1,2,3,4,5,6,7].forEach(i => {
+    const el = document.getElementById(`popt-${i}`);
+    if (el) el.classList.toggle('selected', ids.includes(i));
+  });
+}
+
+function startTest() {
+  const pid = parseInt(document.getElementById('run-profile')?.value);
+  if (!pid) { showToast('Select a profile first','error'); return; }
+  const phases = [1,2,3,4,5,6,7].filter(i =>
+    document.getElementById(`popt-${i}`)?.classList.contains('selected'));
+  if (!phases.length) { showToast('Select at least one phase','error'); return; }
+  const delay = parseFloat(document.getElementById('run-delay')?.value) || 0.5;
+
+  state.testRunning = true;
+  state.activeProfileId = pid;
+  state.attackResults = [];
+  state.phaseStates = {};
+  state.liveLines = [];
+
+  clearTerminal();
+  document.getElementById('phase-progress-card').style.display = '';
+  document.getElementById('attack-progress-card').style.display = '';
+  updateAttackProgress(0, 0, 0);
+  updateRunButton(true);
+  updatePhaseProgress();
+
+  state.socket.emit('start_test', {profile_id: pid, phases, attack_delay: delay});
+}
+
+function stopTest() {
+  state.socket.emit('stop_test');
+}
+
+function startTestFromProfile(pid) {
+  state.activeProfileId = pid;
+  nav('run');
+  setTimeout(() => {
+    const sel = document.getElementById('run-profile');
+    if (sel) { sel.value = pid; onProfileChange(); }
+    startTest();
+  }, 100);
+}
+
+function quickRun() {
+  const pid = parseInt(document.getElementById('dash-profile-sel')?.value);
+  if (pid) startTestFromProfile(pid);
+}
+
+function updateRunButton(running) {
+  const run  = document.getElementById('run-btn');
+  const stop = document.getElementById('stop-btn');
+  if (run)  { run.disabled = running; run.style.display = running?'none':''; }
+  if (stop) { stop.style.display = running?'':'none'; }
+}
+
+function clearTerminal() {
+  const t = document.getElementById('terminal');
+  if (t) t.innerHTML = '';
+}
+
+function appendTerminalLine(d) {
+  const t = document.getElementById('terminal');
+  if (!t) return;
+  const div = document.createElement('div');
+  div.className = 'terminal-line';
+  div.innerHTML = `
+    <span class="t-ts">${d.ts}</span>
+    <span class="t-lvl ${d.level}">${d.level}</span>
+    <span class="t-msg">${escHtml(d.msg)}</span>
+    ${d.phase ? `<span class="t-ph">P${d.phase}</span>` : ''}`;
+  t.appendChild(div);
+  t.scrollTop = t.scrollHeight;
+}
+
+function updatePhaseProgress() {
+  const list = document.getElementById('phase-progress-list');
+  if (!list) return;
+  const phaseNames = {1:'Pre-flight',2:'Config Validation',3:'Rules Validation',
+                      4:'Attack Suite',5:'Feature Tests',6:'Incident Verify',7:'Report'};
+  const phaseIcons = {
+    PASSED:'✅',PARTIAL:'⚠️',FAILED:'❌',running:'🔄',waiting:'⏳'
+  };
+  list.innerHTML = Object.entries(phaseNames).map(([id,name]) => {
+    const ps = state.phaseStates[parseInt(id)];
+    const status = ps?.status || 'waiting';
+    const icon = status==='running' ? '<div class="spinner"></div>' : (phaseIcons[status]||'⏳');
+    const detail = ps?.det_rate != null ? `${ps.det_rate}% detection` :
+                   ps?.checks ? `${ps.checks.filter(c=>c.ok).length}/${ps.checks.length} passed` : '';
+    return `
+      <div class="phase-row ${status==='running'?'running':status==='PASSED'?'done-pass':status==='PARTIAL'?'done-warn':status==='FAILED'?'done-fail':''}">
+        <div class="phase-icon">${typeof icon === 'string' && icon.length<5 ? icon : ''}</div>
+        ${status==='running' ? '<div class="spinner"></div>' : ''}
+        <div class="phase-info">
+          <div class="phase-name">Phase ${id}: ${name}</div>
+          ${detail ? `<div class="phase-detail">${detail}</div>` : ''}
+        </div>
+        <div class="phase-status ${status}">${status}</div>
+      </div>`;
+  }).join('');
+}
+
+function updateAttackProgress(pct, done, total) {
+  const bar   = document.getElementById('attack-progress-bar');
+  const label = document.getElementById('attack-progress-label');
+  if (bar)   bar.style.width = pct + '%';
+  if (bar)   bar.className = `progress-bar ${pct>=80?'':'pct<50?red:yellow'}`;
+  if (label) label.textContent = `${done}/${total}`;
+}
+
+function appendAttackRow(ar) {
+  const tbody = document.getElementById('attack-tbody');
+  if (!tbody) return;
+  const result = ar.result || 'PASSED_THROUGH';
+  const chip = resultChip(result);
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="color:var(--text3)">${ar.id}</td>
+    <td><span class="cat-badge">${ar.category}</span></td>
+    <td>${escHtml(ar.desc)}</td>
+    <td style="color:var(--text3)">${ar.status}</td>
+    <td>${chip}</td>`;
+  tbody.appendChild(tr);
+  tbody.closest('div').scrollTop = tbody.closest('div').scrollHeight;
+}
+
+function resultChip(result) {
+  if (!result) return '';
+  let cls = 'PASSED_THROUGH', label = result;
+  if (result==='BLOCKED')          { cls='BLOCKED';          label='🛡 BLOCKED'; }
+  else if (result==='DROPPED')     { cls='DROPPED';          label='🚫 DROPPED'; }
+  else if (result.startsWith('REDIRECTED')) { cls='REDIRECTED'; label='↩ REDIRECTED'; }
+  else if (result==='NOT_EXPOSED') { cls='NOT_EXPOSED';      label='🔍 NOT EXPOSED'; }
+  else if (result.includes('*'))   { cls='RECON';            label='⚠ NEEDS REVIEW'; }
+  else                             { cls='PASSED_THROUGH';   label='❌ MISSED'; }
+  return `<span class="result-chip ${cls}">${label}</span>`;
+}
+
+function renderListenerInfo(info) {
+  const card = document.getElementById('listener-info-card');
+  const body = document.getElementById('listener-info-body');
+  if (!card || !body) return;
+  card.style.display = '';
+  const rows = [
+    ['Mode',        `<span class="mode-badge ${info.mode}">${info.mode}</span>`],
+    ['Paranoia',    info.paranoia],
+    ['Signatures',  info.sig_on ? '✅ ON' : '❌ OFF'],
+    ['SSL',         info.ssl_enabled ? `✅ ON (${info.cipher_suite})` : '❌ OFF'],
+    ['Backend',     info.backend],
+    ['HSTS',        info.hsts],
+    ['Antivirus',   info.av_mode],
+    ['Bot Bad Rep', info.bot_bad_rep],
+    ['Geo-IP',      info.has_geo ? `${info.geo_countries.length} countries` : 'Not configured'],
+  ];
+  body.innerHTML = rows.map(([k,v]) =>
+    `<div class="config-row"><div class="config-key">${k}</div><div class="config-val">${v}</div></div>`
+  ).join('');
+}
+
+function renderListenersList(listeners) {
+  // Show in terminal as log lines
+}
+
+function renderIncidentsPreview(incidents, ioc_count) {
+  const card = document.getElementById('incidents-preview-card');
+  const body = document.getElementById('incidents-preview-body');
+  if (!card || !body) return;
+  card.style.display = '';
+  if (!incidents || !incidents.length) {
+    body.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px 0">No incidents in last 60 min</div>';
+    return;
+  }
+  body.innerHTML = `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${incidents.length} incidents · ${ioc_count} IoC IPs</div>
+    <table class="inc-table">
+      <thead><tr><th>Time</th><th>Source IP</th><th>Category</th><th>Action</th></tr></thead>
+      <tbody>
+        ${incidents.slice(0,8).map(inc => {
+          let src='?', cat='?', action='?';
+          try { const ld=JSON.parse(inc.log||'{}'); src=ld.src||'?'; action=ld.action||'?'; } catch(e) {}
+          cat = inc.category || inc.subCategory || '?';
+          const actionClass = action.includes('DROP')?'action-drop':action.includes('RECORD')?'action-record':'action-block';
+          return `<tr>
+            <td style="color:var(--text3)">${String(inc.startTime||'').substring(0,10)}</td>
+            <td>${src}</td>
+            <td>${cat}</td>
+            <td class="${actionClass}">${action}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RESULTS PAGE
+// ═══════════════════════════════════════════════════════════════
+function renderResults(el) {
+  if (!state.testResults) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">No results yet</div>
+        <div class="empty-sub">Run a test to see results here</div>
+        <button class="btn btn-primary" style="margin-top:20px" onclick="nav('run')">Run Test</button>
+      </div>`;
+    return;
+  }
+  buildResults(state.testResults, el);
+}
+
+function buildResults(data, container) {
+  const el = container || document.getElementById('page-content');
+  if (!el || state.currentPage !== 'results') return;
+
+  const atk      = data.attack_results || [];
+  const blocked  = atk.filter(a=>a.blocked).length;
+  const det      = atk.length ? Math.round(blocked/atk.length*100) : 0;
+  const score    = data.health_score || 0;
+  const vcolor   = score>=85?'good':score>=65?'warn':'bad';
+
+  // Category data for chart
+  const cats = {};
+  atk.forEach(a => {
+    cats[a.category] = cats[a.category] || {total:0,blocked:0};
+    cats[a.category].total++;
+    if (a.blocked) cats[a.category].blocked++;
+  });
+
+  el.innerHTML = `
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+      <div class="tab" onclick="switchTab('attacks',this)">Attack Results</div>
+      <div class="tab" onclick="switchTab('config',this)">Config Checks</div>
+      <div class="tab" onclick="switchTab('incidents',this)">Incidents</div>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div id="tab-overview">
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:20px;margin-bottom:20px">
+        <div class="card" style="text-align:center;min-width:200px">
+          <div class="card-title" style="justify-content:center;margin-bottom:12px">WAF Health Score</div>
+          ${gaugeHTML(score, 96)}
+          <div class="verdict-badge ${vcolor}" style="margin:8px auto 0">${data.verdict||''}</div>
+          <div style="margin-top:16px;font-size:12px;color:var(--text3)">${(data.completed_at||'').substring(0,16).replace('T',' ')}</div>
+        </div>
+        <div>
+          <div class="stats-grid" style="margin-bottom:16px">
+            <div class="stat-card green">
+              <div class="stat-label">Detection Rate</div>
+              <div class="stat-value ${det>=80?'green':det>=60?'yellow':'red'}">${det}%</div>
+              <div class="stat-sub">${blocked}/${atk.length} attacks blocked</div>
+            </div>
+            <div class="stat-card blue">
+              <div class="stat-label">Hard Blocked</div>
+              <div class="stat-value blue">${atk.filter(a=>a.result==='BLOCKED').length}</div>
+              <div class="stat-sub">HTTP 403/406/etc</div>
+            </div>
+            <div class="stat-card green">
+              <div class="stat-label">Dropped</div>
+              <div class="stat-value green">${atk.filter(a=>a.result==='DROPPED').length}</div>
+              <div class="stat-sub">Connection reset</div>
+            </div>
+            <div class="stat-card purple">
+              <div class="stat-label">Redirected</div>
+              <div class="stat-value purple">${atk.filter(a=>a.result&&a.result.startsWith('REDIRECTED')).length}</div>
+              <div class="stat-sub">WAF challenge page</div>
+            </div>
+            <div class="stat-card red">
+              <div class="stat-label">Missed</div>
+              <div class="stat-value red">${atk.filter(a=>a.result==='PASSED_THROUGH').length}</div>
+              <div class="stat-sub">Needs investigation</div>
+            </div>
+          </div>
+
+          <!-- Phase summary -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px">Phase Results</div>
+            ${Object.entries(data.phases||{}).map(([phId,ph]) => {
+              const status = ph.status || 'SKIPPED';
+              const icon = {PASSED:'✅',PARTIAL:'⚠️',FAILED:'❌',SKIPPED:'⏭️'}[status]||'?';
+              const color = {PASSED:'var(--green)',PARTIAL:'var(--yellow)',FAILED:'var(--red)',SKIPPED:'var(--text3)'}[status];
+              return `
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+                  <span style="font-size:16px">${icon}</span>
+                  <span style="font-size:13px;color:var(--text);flex:1">Phase ${phId}: ${ph.name||''}</span>
+                  <span style="font-size:12px;font-weight:700;color:${color}">${status}</span>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="chart-grid" style="margin-bottom:20px">
+        <div class="chart-wrap">
+          <div class="chart-title">Attack Detection by Category</div>
+          <canvas id="cat-chart" height="200"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">Block Method Breakdown</div>
+          <canvas id="block-chart" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Findings -->
+      ${(data.findings||data.all_findings||[]).length > 0 ? `
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px">⚠️ Findings & Recommendations</div>
+          ${(data.findings||data.all_findings||[]).map(f => {
+            const isCrit = f.includes('[CRITICAL]')||f.includes('[MISSED]');
+            const msg = f.replace('[CRITICAL] ','').replace('[MISSED] ','').replace('[WARN] ','');
+            return `
+              <div class="finding ${isCrit?'critical':'warn'}">
+                <span class="finding-icon">${isCrit?'🔴':'🟡'}</span>
+                <span class="finding-msg">${escHtml(msg)}</span>
+                <span class="finding-type">${isCrit?'Critical':'Warning'}</span>
+              </div>`;
+          }).join('')}
+        </div>` : `<div class="card"><div style="color:var(--green);font-size:14px">✅ No critical findings</div></div>`}
+    </div>
+
+    <!-- ATTACKS TAB -->
+    <div id="tab-attacks" style="display:none">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🎯 Attack Suite Results</div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="atk-filter" placeholder="Filter..." style="width:160px;height:32px;padding:4px 10px"
+              oninput="filterAttacks(this.value)">
+            <select class="form-select" id="atk-cat-filter" style="width:140px;height:32px;padding:4px 8px"
+              onchange="filterAttacks(document.getElementById('atk-filter').value)">
+              <option value="">All Categories</option>
+              ${[...new Set(atk.map(a=>a.category))].map(c=>`<option value="${c}">${c}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="attack-table" id="full-attack-table">
+            <thead><tr>
+              <th>ID</th><th>Category</th><th>Description</th>
+              <th>HTTP Status</th><th>Result</th><th>Time</th>
+            </tr></thead>
+            <tbody>
+              ${atk.map(ar => `
+                <tr data-cat="${ar.category}" data-desc="${ar.desc}" data-id="${ar.id}">
+                  <td style="color:var(--text3);font-weight:700">${ar.id}</td>
+                  <td><span class="cat-badge">${ar.category}</span></td>
+                  <td>${escHtml(ar.desc||'')}</td>
+                  <td style="color:var(--text3)">${ar.status}</td>
+                  <td>${resultChip(ar.result)}</td>
+                  <td style="color:var(--text3)">${ar.elapsed||''}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIG TAB -->
+    <div id="tab-config" style="display:none">
+      ${Object.entries(data.phases||{}).map(([phId, ph]) => {
+        const checks = ph.checks || [];
+        if (!checks.length) return '';
+        return `
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+              <div class="card-title">Phase ${phId}: ${ph.name||''}</div>
+              <span class="phase-status ${ph.status}">${ph.status}</span>
+            </div>
+            ${checks.map(c => `
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+                <span class="ok-dot ${c.ok?'green':c.warn?'yellow':'red'}"></span>
+                <span style="font-size:13px;color:var(--text);flex:1">${escHtml(c.msg||'')}</span>
+                ${c.detail?`<span style="font-size:11px;color:var(--text3)">${escHtml(c.detail)}</span>`:''}
+              </div>`).join('')}
+          </div>`;
+      }).join('')}
+    </div>
+
+    <!-- INCIDENTS TAB -->
+    <div id="tab-incidents" style="display:none">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px">🚨 WAF Incidents (last 60 min)</div>
+        ${(data.incidents||state.incidents||[]).length === 0 ?
+          '<div style="color:var(--text3);padding:20px 0">No incidents recorded</div>' :
+          `<table class="inc-table">
+            <thead><tr><th>Time</th><th>Source IP</th><th>Category</th><th>Action</th><th>URI</th><th>Rule</th></tr></thead>
+            <tbody>
+              ${(data.incidents||state.incidents||[]).slice(0,30).map(inc => {
+                let src='?', action='?', uri='?', rule='?', cat='?';
+                try {
+                  const ld=JSON.parse(inc.log||'{}');
+                  src=ld.src||'?'; action=ld.action||'?'; uri=(ld.uri||'?').substring(0,30);
+                  const m=ld.match||[]; if(m.length) rule=m[0].ruleName||'?'; cat=m[0]?.metric||'?';
+                } catch(e) { action=inc.action||'?'; }
+                const ac = action.includes('DROP')?'action-drop':action.includes('RECORD')?'action-record':'action-block';
+                return `<tr>
+                  <td style="color:var(--text3)">${String(inc.startTime||'').substring(0,10)}</td>
+                  <td>${src}</td><td>${cat}</td>
+                  <td class="${ac}">${action}</td>
+                  <td style="font-size:11px">${escHtml(uri)}</td>
+                  <td style="font-size:11px;color:var(--text3)">${escHtml(rule)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>`}
+      </div>
+    </div>`;
+
+  // Render charts
+  setTimeout(() => {
+    renderCatChart(cats);
+    renderBlockChart(atk);
+  }, 50);
+}
+
+function switchTab(id, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  ['overview','attacks','config','incidents'].forEach(t => {
+    const div = document.getElementById(`tab-${t}`);
+    if (div) div.style.display = t===id?'':'none';
+  });
+  if (id==='attacks' && state.testResults) {
+    // charts already rendered
+  }
+}
+
+function filterAttacks(val) {
+  const cat = document.getElementById('atk-cat-filter')?.value || '';
+  document.querySelectorAll('#full-attack-table tbody tr').forEach(tr => {
+    const matchVal = !val || tr.dataset.desc?.toLowerCase().includes(val.toLowerCase()) ||
+                     tr.dataset.id?.toLowerCase().includes(val.toLowerCase());
+    const matchCat = !cat || tr.dataset.cat === cat;
+    tr.style.display = matchVal && matchCat ? '' : 'none';
+  });
+}
+
+function renderCatChart(cats) {
+  const canvas = document.getElementById('cat-chart');
+  if (!canvas) return;
+  if (canvas._chart) canvas._chart.destroy();
+  canvas._chart = new Chart(canvas, {
+    type:'bar',
+    data:{
+      labels: Object.keys(cats),
+      datasets:[
+        {label:'Blocked',data:Object.values(cats).map(c=>c.blocked),
+         backgroundColor:'rgba(16,185,129,.7)',borderColor:'#10b981',borderWidth:1},
+        {label:'Missed',data:Object.values(cats).map(c=>c.total-c.blocked),
+         backgroundColor:'rgba(239,68,68,.7)',borderColor:'#ef4444',borderWidth:1},
+      ]
+    },
+    options:{responsive:true,plugins:{legend:{labels:{color:'#94a3b8'}}},
+      scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e2d4a'}},
+              y:{ticks:{color:'#94a3b8'},grid:{color:'#1e2d4a'}}}}
+  });
+}
+
+function renderBlockChart(atk) {
+  const canvas = document.getElementById('block-chart');
+  if (!canvas) return;
+  if (canvas._chart) canvas._chart.destroy();
+  const data = {
+    'Hard Block (403)':  atk.filter(a=>a.result==='BLOCKED').length,
+    'Dropped':           atk.filter(a=>a.result==='DROPPED').length,
+    'Redirected':        atk.filter(a=>a.result&&a.result.startsWith('REDIRECTED')).length,
+    'Not Exposed (404)': atk.filter(a=>a.result==='NOT_EXPOSED').length,
+    'Missed':            atk.filter(a=>a.result==='PASSED_THROUGH').length,
+  };
+  canvas._chart = new Chart(canvas, {
+    type:'doughnut',
+    data:{
+      labels: Object.keys(data),
+      datasets:[{data:Object.values(data),
+        backgroundColor:['#10b981','#3b82f6','#8b5cf6','#a855f7','#ef4444'],
+        borderColor:'#0f1729',borderWidth:2}]
+    },
+    options:{responsive:true,plugins:{legend:{labels:{color:'#94a3b8'}}}}
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HISTORY PAGE
+// ═══════════════════════════════════════════════════════════════
+async function renderHistory(el) {
+  el.innerHTML = `
+    <div class="form-group" style="max-width:300px;margin-bottom:20px">
+      <label class="form-label">Select Profile</label>
+      <select class="form-select" id="hist-profile" onchange="loadHistory(this.value)">
+        <option value="">— Select Profile —</option>
+        ${state.profiles.map((p,i)=>`<option value="${i+1}">${p.name}</option>`).join('')}
+      </select>
+    </div>
+    <div id="history-body">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">Select a profile</div>
+        <div class="empty-sub">Choose a profile to see its test history</div>
+      </div>
+    </div>`;
+}
+
+async function loadHistory(pid) {
+  if (!pid) return;
+  const reports = await api('GET', `/api/reports/${pid}`);
+  const body = document.getElementById('history-body');
+  if (!reports || !reports.length) {
+    body.innerHTML = '<div style="color:var(--text3);padding:20px">No reports for this profile</div>';
+    return;
+  }
+  body.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${reports.map(r => {
+        const vcolor = r.health_score>=85?'good':r.health_score>=65?'warn':'bad';
+        return `
+          <div class="card" style="cursor:pointer" onclick="loadHistoryReport(${pid},'${r.filename}')">
+            <div style="display:flex;align-items:center;gap:16px">
+              <div style="text-align:center;min-width:70px">
+                ${gaugeHTML(r.health_score||0, 60)}
+              </div>
+              <div style="flex:1">
+                <div style="font-size:14px;font-weight:700;margin-bottom:4px">${(r.generated_at||'').substring(0,16).replace('T',' ')}</div>
+                <div class="verdict-badge ${vcolor}" style="display:inline-flex;font-size:11px">${r.verdict}</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:24px;font-weight:800;color:${r.det_rate>=80?'var(--green)':r.det_rate>=60?'var(--yellow)':'var(--red)'}">${r.det_rate}%</div>
+                <div style="font-size:11px;color:var(--text3)">detection rate</div>
+              </div>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+async function loadHistoryReport(pid, filename) {
+  const data = await api('GET', `/api/reports/${pid}/${filename}`);
+  state.testResults = data;
+  state.incidents = data.incidents || [];
+  nav('results');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showToast(msg, type='info') {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${type==='success'?'✅':type==='error'?'❌':'ℹ️'}</span> ${escHtml(msg)}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+async function init() {
+  initSocket();
+  await loadProfiles();
+  nav('dashboard');
+}
+
+init();
+</script>
+</body>
+</html>
+HTMLEOF
+echo "Done - $(wc -l < /home/claude/waf-platform/static/index.html) lines"
