@@ -398,9 +398,21 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 <!-- MAIN -->
 <div class="main">
   <div class="topbar">
-    <div>
-      <div class="page-title" id="page-title">Dashboard</div>
-      <div class="page-subtitle" id="page-subtitle">Overview of all test profiles</div>
+    <div style="display:flex;align-items:center;gap:18px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <img id="brand-logo-small" src="static/logo.png" alt="logo" style="width:28px;height:28px;border-radius:6px;object-fit:cover" onerror="this.style.display='none'">
+        <div class="page-title" id="page-title">Dashboard</div>
+      </div>
+      <nav style="display:flex;gap:12px;align-items:center">
+        <div style="font-size:13px;color:var(--text3);">Overview</div>
+        <div style="font-size:13px;color:var(--text3);">Apps</div>
+        <div style="font-size:13px;color:var(--text3);">Events</div>
+        <div style="font-size:13px;color:var(--text3);">Alarms</div>
+        <div style="font-size:13px;color:var(--text3);">Analytics</div>
+        <div style="font-size:13px;color:var(--text3);">Members</div>
+        <div style="font-size:13px;color:var(--text3);">Resources</div>
+      </nav>
+      <div style="margin-left:12px;color:var(--text3);font-size:12px" id="page-subtitle">Overview of all test profiles</div>
     </div>
     <div class="topbar-right">
       <div style="display:flex;align-items:center;gap:6px">
@@ -1298,6 +1310,8 @@ function buildResults(data, container) {
   const det      = atk.length ? Math.round(blocked/atk.length*100) : 0;
   const score    = data.health_score || 0;
   const vcolor   = score>=85?'good':score>=65?'warn':'bad';
+  // Prefer overview data persisted in report, fallback to live state
+  const overview = data.overview || state.overview || {};
 
   // Category data for chart
   const cats = {};
@@ -1352,6 +1366,26 @@ function buildResults(data, container) {
               <div class="stat-sub">Needs investigation</div>
             </div>
           </div>
+
+            <!-- persisted overview tiles (from report.overview) -->
+            ${overview && Object.keys(overview).length ? `
+              <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+                <div class="stat-card green">
+                  <div class="stat-label">Total Incidents</div>
+                  <div class="stat-value green">${overview.total_incidents||0}</div>
+                  <div class="stat-sub">Last 60 minutes</div>
+                </div>
+                <div class="stat-card blue">
+                  <div class="stat-label">Attacks Tested</div>
+                  <div class="stat-value blue">${overview.attack_summary?.total||0}</div>
+                  <div class="stat-sub">Blocked: ${overview.attack_summary?.blocked||0}</div>
+                </div>
+                <div class="stat-card purple">
+                  <div class="stat-label">Reconciled</div>
+                  <div class="stat-value purple">${overview.attack_summary?.reconciled||0}</div>
+                  <div class="stat-sub">Auto-matched incidents</div>
+                </div>
+              </div>` : ''}
 
           <!-- Phase summary -->
           <div class="card">

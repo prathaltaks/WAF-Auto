@@ -623,6 +623,11 @@ def phase7_report(phase_results: list, attack_results: list, info, report_name=N
         "incidents": next((p.incidents for p in phase_results if getattr(p, 'incidents', None)), []),
         "all_findings": all_findings,
     }
+    # attach an aggregated overview snapshot so UI can persist it
+    try:
+        report_data["overview"] = build_overview_metrics_from_report(report_data)
+    except Exception:
+        report_data["overview"] = {}
     with open(fn, "w", encoding="utf-8") as f:
         json.dump(report_data, f, indent=2)
     print(f"\n{C.INFO}  Full JSON report saved → {fn}{C.R}\n")
