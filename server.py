@@ -945,6 +945,42 @@ def build_phase_flags(phases):
     return phase_flags
 
 
+def build_overview_metrics_from_report(report):
+    if not report:
+        return {}
+    incidents = report.get("incidents") or []
+    attack_results = report.get("attack_results") or []
+    # count top attacking IPs from incidents
+    ip_counts = {}
+    country_counts = {}
+    for inc in incidents:
+        # possible keys
+        ip = inc.get("srcIp") or inc.get("sourceIp") or inc.get("ip") or inc.get("clientIp") or inc.get("source")
+        if ip:
+            ip_counts[ip] = ip_counts.get(ip, 0) + 1
+        country = inc.get("country") or inc.get("geo") or inc.get("countryCode")
+        if country:
+            country_counts[country] = country_counts.get(country, 0) + 1
+
+    top_attacking = sorted([{"ip": k, "count": v} for k, v in ip_counts.items()], key=lambda x: x["count"], reverse=True)[:10]
+
+    blocked = sum(1 for a in attack_results if a.get("blocked"))
+    reconciled = sum(1 for a in attack_results if a.get("reconciled"))
+    total_attacks = len(attack_results)
+
+    overview = {
+        "generated_at": report.get("generated_at"),
+        "health_score": report.get("health_score"),
+        "verdict": report.get("verdict"),
+        "total_incidents": len(incidents),
+        "top_attacking_ips": top_attacking,
+        "country_counts": country_counts,
+        "attack_summary": {"total": total_attacks, "blocked": blocked, "reconciled": reconciled},
+        "phases": report.get("phases", {}),
+    }
+    return overview
+
+
 @socketio.on("start_test")
 def on_start_test(data):
     sid = request.sid
@@ -1009,7 +1045,7 @@ def on_start_test(data):
                 elif event_type == "phase_start":
                     socketio.emit("phase_start", {"phase": event.get("phase"), "name": event.get("name")}, to=sid)
                 elif event_type == "phase_done":
-                    socketio.emit("phase_done", {"phase": event.get("phase"), "name": event.get("name"), "status": event.get("status"), "passed": event.get("passed"), "failed": event.get("failed"), "skipped": event.get("skipped"), "findings": event.get("findings")}, to=sid)
+                    socketio.emit("phase_done", {"phase": event.get("phase"), "name": event.get("name"), "status": event.get("status"), "passed": event.get("passed"), "failed": event.get("failed"), "skipped": event.get("skipped"), "findings": event.get("findings"), "checks": event.get("checks", [])}, to=sid)
                 elif event_type == "attack_result":
                     socketio.emit("attack_result", {"id": event.get("id"), "category": event.get("category"), "desc": event.get("desc"), "status": event.get("status"), "result": event.get("result"), "progress": event.get("progress"), "index": event.get("index"), "total": event.get("total")}, to=sid)
                 elif event_type == "listener_info":
@@ -1023,7 +1059,13 @@ def on_start_test(data):
                 elif event_type == "test_started":
                     socketio.emit("test_started", {"profile": event.get("profile")}, to=sid)
                 elif event_type == "test_complete":
-                    socketio.emit("test_complete", event.get("report"), to=sid)
+                    report = event.get("report")
+                    socketio.emit("test_complete", report, to=sid)
+                    try:
+                        overview = build_overview_metrics_from_report(report)
+                        socketio.emit("overview_metrics", overview, to=sid)
+                    except Exception:
+                        pass
 
             engine_thread.join(timeout=2)
             if engine_thread.is_alive():

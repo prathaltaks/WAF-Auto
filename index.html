@@ -362,7 +362,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 <aside class="sidebar">
   <div class="sidebar-logo">
     <div class="logo-mark">
-      <div class="logo-icon">H</div>
+      <img id="brand-logo" src="static/logo.png" alt="logo" style="width:36px;height:36px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'">
+      <div class="logo-icon" id="logo-fallback">H</div>
       <div>
         <div class="logo-text">Haltdos WAF</div>
         <div class="logo-sub">Testing Platform v5</div>
@@ -495,6 +496,11 @@ function initSocket() {
     buildResults(d);
     showToast('Test complete! ' + d.verdict, 'success');
     loadProfiles();
+  });
+
+  s.on('overview_metrics', d => {
+    state.overview = d;
+    renderOverviewSmall(d);
   });
 
   s.on('test_error', d => {
@@ -1431,6 +1437,18 @@ function buildResults(data, container) {
       </div>
     </div>
 
+    <!-- Top attackers & Countries -->
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:20px">
+      <div class="card" id="overview-top-ips">
+        <div class="card-title">Top Attacking IPs</div>
+        <div style="margin-top:12px;color:var(--text3)">No data yet</div>
+      </div>
+      <div class="card" id="overview-countries">
+        <div class="card-title">Country Heatmap (counts)</div>
+        <div style="margin-top:12px;color:var(--text3)">No data yet</div>
+      </div>
+    </div>
+
     <!-- CONFIG TAB -->
     <div id="tab-config" style="display:none">
       ${Object.entries(data.phases||{}).map(([phId, ph]) => {
@@ -1486,6 +1504,7 @@ function buildResults(data, container) {
   setTimeout(() => {
     renderCatChart(cats);
     renderBlockChart(atk);
+    if (state.overview) renderOverviewSmall(state.overview);
   }, 50);
 }
 
@@ -1553,6 +1572,32 @@ function renderBlockChart(atk) {
     },
     options:{responsive:true,plugins:{legend:{labels:{color:'#94a3b8'}}}}
   });
+}
+
+function renderOverviewSmall(d) {
+  try {
+    const topEl = document.getElementById('overview-top-ips');
+    const countryEl = document.getElementById('overview-countries');
+    if (!topEl || !countryEl) return;
+    const tops = (d.top_attacking_ips||[]);
+    if (!tops.length) {
+      topEl.querySelector('div:nth-child(2)').innerHTML = '<div style="color:var(--text3)">No attacking IPs found</div>';
+    } else {
+      topEl.querySelector('div:nth-child(2)').innerHTML = `
+        <table class="inc-table"><thead><tr><th>IP</th><th>Incidents</th></tr></thead><tbody>
+        ${tops.map(t=>`<tr><td>${t.ip}</td><td style="font-weight:700">${t.count}</td></tr>`).join('')}
+        </tbody></table>`;
+    }
+    const countries = d.country_counts||{};
+    if (!Object.keys(countries).length) {
+      countryEl.querySelector('div:nth-child(2)').innerHTML = '<div style="color:var(--text3)">No country data</div>';
+    } else {
+      countryEl.querySelector('div:nth-child(2)').innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${Object.entries(countries).slice(0,10).map(([c,n])=>`<div style="display:flex;justify-content:space-between"><div>${c}</div><div style="font-weight:700">${n}</div></div>`).join('')}
+        </div>`;
+    }
+  } catch(e) { console.warn('renderOverviewSmall', e); }
 }
 
 // ═══════════════════════════════════════════════════════════════
