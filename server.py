@@ -138,16 +138,28 @@ class PhaseResult:
     def ok(self, msg):
         self.passed += 1
         log("PASS", msg)
+        try:
+            self.add_check(msg, ok=True)
+        except Exception:
+            pass
 
     def fail(self, msg, finding=None):
         self.failed += 1
         log("FAIL", msg)
+        try:
+            self.add_check(msg, ok=False)
+        except Exception:
+            pass
         if finding:
             self.findings.append(f"[CRITICAL] {finding}")
 
     def warn(self, msg, finding=None):
         self.skipped += 1
         log("WARN", msg)
+        try:
+            self.add_check(msg, ok=False, warn=True)
+        except Exception:
+            pass
         if finding:
             self.findings.append(f"[WARN] {finding}")
 
@@ -557,10 +569,20 @@ def phase6_incidents(api: HaltdosAPI, info: ListenerInfo, attack_results: list):
     data, err = api.get_incidents(ref_id=info.listener_id, limit=200, minutes_back=60)
     if err:
         r.warn(f"Could not fetch incidents: {err}")
-        return r
+        # try without ref_id
+        data, err = api.get_incidents(limit=200, minutes_back=60)
+        if err:
+            return r
     incidents = data.get("data", []) if data else []
+    ioc_count = 0
+    try:
+        ioc_data, ioc_err = api.get_ioc_list(minutes_back=60)
+        if ioc_data and isinstance(ioc_data.get('data'), list):
+            ioc_count = len(ioc_data.get('data'))
+    except Exception:
+        ioc_count = 0
     r.ok(f"{len(incidents)} incident(s) found in the last hour")
-    emit_event("incidents_data", incidents=incidents, ioc_count=0)
+    emit_event("incidents_data", incidents=incidents, ioc_count=ioc_count)
     # Reconciliation simplified: mark any PASSED_THROUGH as reconciled if keyword found
     if attack_results and incidents:
         corpus = " ".join([str(i.get("message","")) for i in incidents]).lower()
