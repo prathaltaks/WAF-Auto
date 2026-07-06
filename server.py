@@ -793,6 +793,59 @@ def load_report_index():
     return reports
 
 
+def build_overview_summary():
+    ensure_storage()
+    reports = []
+    for path in sorted(REPORTS_DIR.glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        reports.append(data)
+
+    totals = {
+        "reports_count": len(reports),
+        "profiles_count": len(set([r.get("profile_id") for r in reports if r.get("profile_id") is not None])),
+        "total_incidents": 0,
+        "total_attacks": 0,
+        "total_blocked": 0,
+        "total_reconciled": 0,
+        "average_score": 0,
+        "today_tests": 0,
+        "today_average_score": 0,
+        "today_incidents": 0,
+    }
+    if not reports:
+        return totals
+
+    score_sum = 0
+    today_score_sum = 0
+    today_count = 0
+    now = datetime.now()
+    for r in reports:
+        totals["total_incidents"] += len(r.get("incidents", []))
+        attack_results = r.get("attack_results", []) or []
+        totals["total_attacks"] += len(attack_results)
+        totals["total_blocked"] += sum(1 for a in attack_results if a.get("blocked"))
+        totals["total_reconciled"] += sum(1 for a in attack_results if a.get("reconciled"))
+        if r.get("health_score") is not None:
+            score_sum += float(r.get("health_score") or 0)
+        generated_at = r.get("generated_at") or r.get("completed_at")
+        try:
+            report_dt = datetime.fromisoformat(generated_at)
+        except Exception:
+            report_dt = None
+        if report_dt and report_dt.date() == now.date():
+            today_count += 1
+            if r.get("health_score") is not None:
+                today_score_sum += float(r.get("health_score") or 0)
+            totals["today_incidents"] += len(r.get("incidents", []))
+    totals["average_score"] = round(score_sum / totals["reports_count"], 1) if totals["reports_count"] else 0
+    totals["today_tests"] = today_count
+    totals["today_average_score"] = round(today_score_sum / today_count, 1) if today_count else 0
+    return totals
+
+
 def save_report(profile_id, report_data):
     ensure_storage()
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -907,6 +960,11 @@ def test_connection():
             traffic_ok = False
 
     return jsonify({"management": {"ok": management_ok}, "traffic": {"ok": traffic_ok}})
+
+
+@app.get("/api/reports/overview")
+def overview_summary():
+    return jsonify(build_overview_summary())
 
 
 @app.get("/api/reports/<int:profile_id>")

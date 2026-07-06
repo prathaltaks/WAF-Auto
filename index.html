@@ -9,29 +9,28 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#0a0e1a;--bg2:#0f1729;--bg3:#141e35;--bg4:#1a2540;
-  --border:#1e2d4a;--border2:#253355;
-  --teal:#00d4aa;--teal2:#00b894;--teal3:#00897b;
-  --blue:#3b82f6;--blue2:#1d4ed8;
-  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--orange:#f97316;
-  --purple:#8b5cf6;--pink:#ec4899;
-  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --bg:#061226;--bg2:#0e2141;--bg3:#142d5b;--bg4:#1f3f70;
+  --border:#203a5c;--border2:#274668;
+  --teal:#1dd2b5;--teal2:#1bb3a4;--teal3:#0d8d76;
+  --blue:#3f80ff;--blue2:#2f5fd6;
+  --green:#3dd58f;--red:#ff5a5a;--yellow:#f4c150;--orange:#ff8a3c;
+  --purple:#9f6dff;--pink:#ff7cd4;
+  --text:#e8f5ff;--text2:#a0b7d6;--text3:#7a93b2;
   --font:'Inter',system-ui,sans-serif;
 }
 body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
 
 /* Scrollbar */
-::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:var(--bg2)}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
 
 /* Layout */
-.app{display:flex;min-height:100vh}
-.sidebar{width:240px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);
-  display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
-.main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh}
-.topbar{height:64px;background:var(--bg2);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+.app{display:flex;flex-direction:column;min-height:100vh}
+.sidebar{display:none}
+.main{margin-left:0;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:72px;background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 28px;
   position:sticky;top:0;z-index:50}
 .content{padding:24px;flex:1}
 
@@ -61,9 +60,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 /* Top bar */
 .page-title{font-size:18px;font-weight:700;color:var(--text)}
 .page-subtitle{font-size:12px;color:var(--text3);margin-top:2px}
+.topbar{align-items:center;justify-content:space-between;gap:20px}
+.topbar-left{display:flex;align-items:center;gap:32px}
+.topnav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.nav-pill{background:transparent;color:var(--text2);border:1px solid transparent;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
+.nav-pill:hover{background:rgba(255,255,255,.06);color:var(--text)}
+.nav-pill.active{background:rgba(29,210,181,.15);color:var(--teal);border-color:rgba(29,210,181,.25)}
+.nav-pill-badge{margin-left:6px;background:var(--teal);color:#000;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700}
 .topbar-right{display:flex;align-items:center;gap:12px}
-.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);
-  box-shadow:0 0 8px var(--green)}
+.status-dot{width:10px;height:10px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 12px rgba(29,210,181,.35)}
 .status-label{font-size:12px;color:var(--text2)}
 
 /* Buttons */
@@ -398,24 +404,24 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 <!-- MAIN -->
 <div class="main">
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:18px">
-      <div style="display:flex;align-items:center;gap:12px">
-        <img id="brand-logo-small" src="static/logo.png" alt="logo" style="width:28px;height:28px;border-radius:6px;object-fit:cover" onerror="this.style.display='none'">
-        <div class="page-title" id="page-title">Dashboard</div>
+    <div class="topbar-left">
+      <div class="logo-mark">
+        <div class="logo-icon">W</div>
+        <div>
+          <div class="logo-text">WAF-Auto</div>
+          <div class="logo-sub">Haltdos Test UI</div>
+        </div>
       </div>
-      <nav style="display:flex;gap:12px;align-items:center">
-        <div style="font-size:13px;color:var(--text3);">Overview</div>
-        <div style="font-size:13px;color:var(--text3);">Apps</div>
-        <div style="font-size:13px;color:var(--text3);">Events</div>
-        <div style="font-size:13px;color:var(--text3);">Alarms</div>
-        <div style="font-size:13px;color:var(--text3);">Analytics</div>
-        <div style="font-size:13px;color:var(--text3);">Members</div>
-        <div style="font-size:13px;color:var(--text3);">Resources</div>
-      </nav>
-      <div style="margin-left:12px;color:var(--text3);font-size:12px" id="page-subtitle">Overview of all test profiles</div>
+      <div class="topnav">
+        <button class="nav-pill active" id="nav-dashboard" onclick="nav('dashboard')">Dashboard</button>
+        <button class="nav-pill" id="nav-profiles" onclick="nav('profiles')">Profiles <span class="nav-pill-badge" id="profile-count">0</span></button>
+        <button class="nav-pill" id="nav-run" onclick="nav('run')">Run Test</button>
+        <button class="nav-pill" id="nav-results" onclick="nav('results')">Results</button>
+        <button class="nav-pill" id="nav-history" onclick="nav('history')">History</button>
+      </div>
     </div>
     <div class="topbar-right">
-      <div style="display:flex;align-items:center;gap:6px">
+      <div style="display:flex;align-items:center;gap:12px">
         <div class="status-dot" id="socket-dot" style="background:var(--red)"></div>
         <div class="status-label" id="socket-label">Disconnected</div>
       </div>
@@ -434,12 +440,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 // ═══════════════════════════════════════════════════════════════
 const state = {
   profiles: [],
-  currentPage: 'dashboard',
-  socket: null,
-  testRunning: false,
-  testResults: null,
-  activeProfileId: null,
-  liveLines: [],
+    currentPage: 'overview',
+    socket: null,
+    testRunning: false,
+    testResults: null,
+    overviewSummary: null,
   phaseStates: {},
   attackResults: [],
   incidents: [],
@@ -457,6 +462,16 @@ function initSocket() {
     document.getElementById('socket-dot').style.background = 'var(--green)';
     document.getElementById('socket-label').textContent = 'Connected';
   });
+
+  async function fetchOverview() {
+    try {
+      const data = await api('GET', '/api/reports/overview');
+      state.overviewSummary = data;
+    } catch (err) {
+      console.warn('Overview fetch failed', err);
+    }
+  }
+  fetchOverview();
   s.on('disconnect', () => {
     document.getElementById('socket-dot').style.background = 'var(--red)';
     document.getElementById('socket-label').textContent = 'Disconnected';
@@ -549,7 +564,7 @@ async function loadProfiles() {
 // NAVIGATION
 // ═══════════════════════════════════════════════════════════════
 const pageMeta = {
-  dashboard: {title:'Dashboard', sub:'Overview of all test profiles'},
+  dashboard: {title:'Overview', sub:'Total data and performance summary'},
   profiles:  {title:'Profiles', sub:'Manage WAF setup configurations'},
   run:       {title:'Run Test', sub:'Execute WAF security tests'},
   results:   {title:'Results', sub:'Latest test results and analysis'},
@@ -558,9 +573,11 @@ const pageMeta = {
 
 function nav(page) {
   state.currentPage = page;
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item, .nav-pill').forEach(el => el.classList.remove('active'));
   const navEl = document.getElementById('nav-'+page);
   if (navEl) navEl.classList.add('active');
+  const pill = document.getElementById('nav-'+page);
+  if (pill && pill.classList.contains('nav-pill')) pill.classList.add('active');
   const m = pageMeta[page] || {title:page,sub:''};
   document.getElementById('page-title').textContent = m.title;
   document.getElementById('page-subtitle').textContent = m.sub;
