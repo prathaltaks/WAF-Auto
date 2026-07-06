@@ -9,13 +9,13 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#061226;--bg2:#0e2141;--bg3:#142d5b;--bg4:#1f3f70;
-  --border:#203a5c;--border2:#274668;
-  --teal:#1dd2b5;--teal2:#1bb3a4;--teal3:#0d8d76;
-  --blue:#3f80ff;--blue2:#2f5fd6;
-  --green:#3dd58f;--red:#ff5a5a;--yellow:#f4c150;--orange:#ff8a3c;
-  --purple:#9f6dff;--pink:#ff7cd4;
-  --text:#e8f5ff;--text2:#a0b7d6;--text3:#7a93b2;
+  --bg:#f5f7fb;--bg2:#ffffff;--bg3:#f1f5f9;--bg4:#eef4fb;
+  --border:#dde6ef;--border2:#c9d5e5;
+  --teal:#0b74e1;--teal2:#0d6df0;--teal3:#1549a6;
+  --blue:#0d5cd6;--blue2:#183d9e;
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--orange:#fb923c;
+  --purple:#7c3aed;--pink:#ec4899;
+  --text:#102a43;--text2:#334e68;--text3:#627d98;
   --font:'Inter',system-ui,sans-serif;
 }
 body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
@@ -29,10 +29,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .app{display:flex;flex-direction:column;min-height:100vh}
 .sidebar{display:none}
 .main{margin-left:0;flex:1;display:flex;flex-direction:column;min-height:100vh}
-.topbar{height:72px;background:var(--bg2);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;padding:0 28px;
-  position:sticky;top:0;z-index:50}
-.content{padding:24px;flex:1}
+.topbar{height:88px;background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 32px;
+  position:sticky;top:0;z-index:50;box-shadow:0 20px 45px rgba(15,23,42,.08)}
+.content{padding:32px;flex:1}
 
 /* Sidebar */
 .sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
@@ -61,16 +61,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .page-title{font-size:18px;font-weight:700;color:var(--text)}
 .page-subtitle{font-size:12px;color:var(--text3);margin-top:2px}
 .topbar{align-items:center;justify-content:space-between;gap:20px}
-.topbar-left{display:flex;align-items:center;gap:32px}
-.topnav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.nav-pill{background:transparent;color:var(--text2);border:1px solid transparent;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
-.nav-pill:hover{background:rgba(255,255,255,.06);color:var(--text)}
-.nav-pill.active{background:rgba(29,210,181,.15);color:var(--teal);border-color:rgba(29,210,181,.25)}
-.nav-pill-badge{margin-left:6px;background:var(--teal);color:#000;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700}
-.topbar-right{display:flex;align-items:center;gap:12px}
-.status-dot{width:10px;height:10px;border-radius:50%;background:var(--green);
-  box-shadow:0 0 12px rgba(29,210,181,.35)}
-.status-label{font-size:12px;color:var(--text2)}
+.topbar-left{display:flex;align-items:center;gap:24px}
+.brand-block{display:flex;align-items:center;gap:16px}
+.topbar-logo{width:50px;height:50px;border-radius:18px;background:linear-gradient(135deg,#0d5cd6,#7c3aed);display:flex;align-items:center;justify-content:center;box-shadow:0 18px 36px rgba(13,92,214,.14)}
+.topbar-logo img{width:28px;height:28px}
+.topnav{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.nav-pill{background:rgba(255,255,255,.9);color:var(--text2);border:1px solid var(--border);border-radius:999px;padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;transition:all .25s, color .25s}
+.nav-pill:hover{background:rgba(13,92,214,.14);color:var(--blue)}
+.nav-pill.active{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 14px 28px rgba(13,92,214,.18)}
+.nav-pill-badge{margin-left:6px;background:var(--blue);color:#fff;padding:0 10px;border-radius:999px;font-size:11px;font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.status-dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 12px rgba(16,185,129,.35)}
+.status-label{font-size:12px;color:var(--text3);font-weight:600}
 
 /* Buttons */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;
@@ -87,9 +89,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .btn:disabled{opacity:0.5;cursor:not-allowed;transform:none!important}
 
 /* Cards */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
-  padding:20px;transition:border-color 0.2s}
-.card:hover{border-color:var(--border2)}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:18px;
+  padding:24px;transition:transform 0.25s, border-color 0.2s, box-shadow 0.25s;box-shadow:0 12px 30px rgba(15,23,42,.04)}
+.card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 18px 40px rgba(15,23,42,.06)}
 .card-header{display:flex;align-items:center;justify-content:space-between;
   margin-bottom:16px}
 .card-title{font-size:14px;font-weight:700;color:var(--text);
@@ -379,7 +381,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
   <nav class="sidebar-nav">
     <div class="nav-section">Main</div>
     <div class="nav-item active" onclick="nav('dashboard')" id="nav-dashboard">
-      <span class="icon">🏠</span> Dashboard
+      <span class="icon">🏠</span> Overview
     </div>
     <div class="nav-item" onclick="nav('profiles')" id="nav-profiles">
       <span class="icon">⚙️</span> Profiles
@@ -405,19 +407,21 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 <div class="main">
   <div class="topbar">
     <div class="topbar-left">
-      <div class="logo-mark">
-        <div class="logo-icon">W</div>
-        <div>
-          <div class="logo-text">WAF-Auto</div>
-          <div class="logo-sub">Haltdos Test UI</div>
+      <div class="brand-block">
+        <div class="topbar-logo">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ffffff'/%3E%3Cstop offset='100%25' stop-color='%23dbeafe'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='40' height='40' rx='12' fill='url(%23g)'/%3E%3Cpath d='M14 26 L17 16 L20 21 L23 16 L26 26' stroke='%230d5cd6' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" alt="WAF" />
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="page-title" id="page-title">Overview</div>
+          <div class="page-subtitle" id="page-subtitle">Total data and performance summary</div>
         </div>
       </div>
       <div class="topnav">
-        <button class="nav-pill active" id="nav-dashboard" onclick="nav('dashboard')">Dashboard</button>
-        <button class="nav-pill" id="nav-profiles" onclick="nav('profiles')">Profiles <span class="nav-pill-badge" id="profile-count">0</span></button>
-        <button class="nav-pill" id="nav-run" onclick="nav('run')">Run Test</button>
-        <button class="nav-pill" id="nav-results" onclick="nav('results')">Results</button>
-        <button class="nav-pill" id="nav-history" onclick="nav('history')">History</button>
+        <button class="nav-pill active" id="pill-dashboard" onclick="nav('dashboard')">Overview</button>
+        <button class="nav-pill" id="pill-profiles" onclick="nav('profiles')">Profiles <span class="nav-pill-badge" id="profile-count-pill">0</span></button>
+        <button class="nav-pill" id="pill-run" onclick="nav('run')">Run Test</button>
+        <button class="nav-pill" id="pill-results" onclick="nav('results')">Results</button>
+        <button class="nav-pill" id="pill-history" onclick="nav('history')">History</button>
       </div>
     </div>
     <div class="topbar-right">
@@ -440,11 +444,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 // ═══════════════════════════════════════════════════════════════
 const state = {
   profiles: [],
-    currentPage: 'overview',
-    socket: null,
-    testRunning: false,
-    testResults: null,
-    overviewSummary: null,
+  currentPage: 'dashboard',
+  socket: null,
+  testRunning: false,
+  testResults: null,
+  overviewSummary: null,
   phaseStates: {},
   attackResults: [],
   incidents: [],
@@ -526,8 +530,12 @@ function initSocket() {
   });
 
   s.on('overview_metrics', d => {
+    state.overviewSummary = d;
     state.overview = d;
     renderOverviewSmall(d);
+    if (state.currentPage === 'dashboard') {
+      renderDashboard(document.getElementById('page-content'));
+    }
   });
 
   s.on('test_error', d => {
@@ -556,7 +564,8 @@ async function api(method, url, body) {
 async function loadProfiles() {
   const ps = await api('GET', '/api/profiles');
   state.profiles = ps;
-  document.getElementById('profile-count').textContent = ps.length;
+  const countEls = document.querySelectorAll('#profile-count, #profile-count-pill');
+  countEls.forEach(el => el.textContent = ps.length);
   return ps;
 }
 
@@ -575,12 +584,12 @@ function nav(page) {
   state.currentPage = page;
   document.querySelectorAll('.nav-item, .nav-pill').forEach(el => el.classList.remove('active'));
   const navEl = document.getElementById('nav-'+page);
+  const pillEl = document.getElementById('pill-'+page);
   if (navEl) navEl.classList.add('active');
-  const pill = document.getElementById('nav-'+page);
-  if (pill && pill.classList.contains('nav-pill')) pill.classList.add('active');
-  const m = pageMeta[page] || {title:page,sub:''};
-  document.getElementById('page-title').textContent = m.title;
-  document.getElementById('page-subtitle').textContent = m.sub;
+  if (pillEl) pillEl.classList.add('active');
+  const pageMetaEntry = pageMeta[page] || {title: page, sub: ''};
+  document.getElementById('page-title').textContent = pageMetaEntry.title;
+  document.getElementById('page-subtitle').textContent = pageMetaEntry.sub;
   const content = document.getElementById('page-content');
   if (page==='dashboard') renderDashboard(content);
   else if (page==='profiles') renderProfiles(content);
@@ -597,23 +606,60 @@ function renderDashboard(el) {
   const scored = state.profiles.filter(p => p.last_run).length;
   const avgScore = scored > 0 ?
     Math.round(state.profiles.filter(p=>p.last_score).reduce((a,b)=>a+(b.last_score||0),0)/scored) : 0;
+  const overview = state.overviewSummary || {};
 
   el.innerHTML = `
     <div class="stats-grid">
       <div class="stat-card blue">
-        <div class="stat-label">Total Profiles</div>
+        <div class="stat-label">Profiles Configured</div>
         <div class="stat-value blue">${total}</div>
-        <div class="stat-sub">Test configurations</div>
+        <div class="stat-sub">Profiles stored</div>
       </div>
       <div class="stat-card green">
-        <div class="stat-label">Tests Run</div>
-        <div class="stat-value green">${scored}</div>
-        <div class="stat-sub">Profiles with history</div>
+        <div class="stat-label">Tests Completed</div>
+        <div class="stat-value green">${overview.reports_count || scored}</div>
+        <div class="stat-sub">Total saved reports</div>
       </div>
       <div class="stat-card purple">
-        <div class="stat-label">Status</div>
-        <div class="stat-value purple" style="font-size:20px">${state.testRunning?'🔄 Running':'✅ Idle'}</div>
-        <div class="stat-sub">Engine status</div>
+        <div class="stat-label">Overall Average Score</div>
+        <div class="stat-value purple">${overview.average_score || avgScore || 0}</div>
+        <div class="stat-sub">Across all reports</div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div class="stat-label">Total Incidents</div>
+        <div class="stat-value green">${overview.total_incidents || 0}</div>
+        <div class="stat-sub">Detected across reports</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Total Attacks</div>
+        <div class="stat-value blue">${overview.total_attacks || 0}</div>
+        <div class="stat-sub">Executed attack cases</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">Total Blocked</div>
+        <div class="stat-value purple">${overview.total_blocked || 0}</div>
+        <div class="stat-sub">Detected by WAF</div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card yellow">
+        <div class="stat-label">Today's Tests</div>
+        <div class="stat-value yellow">${overview.today_tests || 0}</div>
+        <div class="stat-sub">Completed today</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Today's Avg Score</div>
+        <div class="stat-value green">${overview.today_average_score || 0}</div>
+        <div class="stat-sub">Today’s reports only</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Profiles Tested</div>
+        <div class="stat-value red">${overview.profiles_count || 0}</div>
+        <div class="stat-sub">Unique profiles</div>
       </div>
     </div>
 
